@@ -1,0 +1,119 @@
+use bitfield::*;
+use crate::ARM::*;
+use crate::bus::*;
+
+bitfield!{
+    pub struct PSR(u32);
+    pub mode,       _: 4, 0;
+    pub isThumb,    _: 5, 5;
+    pub fiqDisable, _: 6, 6;
+    pub irqDisable, _: 7, 7;
+    pub reserved,   _: 8, 27;
+    pub overflow,   _: 28, 28;
+    pub carry,      _: 29, 29;
+    pub zero,       _: 30, 30;
+    pub negative,   _: 31, 31;
+}
+
+pub struct CPU {
+    pub gprs: [u32; 16],
+    pub cpsr: PSR,
+    pub spsr: PSR,
+    pub pipeline: [u32; 3],
+    pub armLUT: [fn(&mut CPU, &Bus, u32); 4096], 
+    pub thumbLUT: [fn(&mut CPU, &Bus, u32); 1024]
+}
+
+pub enum CPUModes {
+    ARM,
+    Thumb
+}
+
+
+impl CPU {
+    pub fn new() -> CPU {
+        CPU {
+            gprs: [0; 16],
+            cpsr: PSR(0x000000D3),
+            spsr: PSR(0),
+            pipeline: [0; 3],
+            armLUT:   [Self::ARM_handleUndefined; 4096],
+            thumbLUT: [Self::ARM_handleUndefined; 1024]
+        }
+    }
+
+    pub fn init(&mut self, bus: &Bus) {
+        self.gprs[15] = 0x8000000;
+        self.refillPipeline(bus);
+        self.populateARMLut();
+    }
+
+    pub fn getGPR(&mut self, gpr: usize) -> u32 {
+        self.gprs[gpr]
+    } 
+
+    pub fn setGPR(&mut self, gpr: usize, val: u32) {
+        self.gprs[gpr] = val;
+    }
+
+    pub fn isInARMState(&self) -> bool {
+        return self.cpsr.isThumb() == 0
+    }
+
+    pub fn step (&mut self, bus: &mut Bus) {
+        if self.isInARMState() {
+            self.executeARMInstruction(bus, self.pipeline[0]);
+        }
+
+        else {
+            todo!("Implement THUMB!\n");
+        }
+    }
+
+    pub fn advancePipeline(&mut self, bus: &Bus, mode: CPUModes) {
+        self.pipeline[0] = self.pipeline[1];
+        self.pipeline[1] = self.pipeline[2];
+        
+        match mode {
+            CPUModes::ARM => self.gprs[15] += 4,
+            CPUModes::Thumb => self.gprs[15] += 2
+        }
+    }
+
+    pub fn refillPipeline (&mut self, bus: &Bus) {
+        if self.isInARMState() {
+            self.pipeline[0] = bus.read32(self.gprs[15]);
+            self.pipeline[1] = bus.read32(self.gprs[15] + 4);
+            self.pipeline[2] = bus.read32(self.gprs[15] + 8);
+            self.gprs[15] += 8;
+        }
+
+        else {
+            self.pipeline[0] = bus.read16(self.gprs[15]) as u32;
+            self.pipeline[1] = bus.read16 (self.gprs[15] + 2) as u32;
+            self.pipeline[2] = bus.read16 (self.gprs[15] + 4) as u32;
+            self.gprs[15] += 4;
+        }
+    }
+
+    pub fn isConditionTrue (&self, condition: u32) -> bool {
+        match condition {
+            0 => self.cpsr.zero()  == 1, // EQ
+            1 => self.cpsr.zero()  == 0, // NE
+            2 => self.cpsr.carry() == 1, // CS
+            3 => self.cpsr.carry() == 0, // CC
+            4 => self.cpsr.negative() == 1, // MI
+            5 => self.cpsr.negative() == 0, // PL
+            6 => self.cpsr.overflow() == 1, // VS
+            7 => self.cpsr.overflow() == 0, // VC
+            8 => self.cpsr.carry() == 1 && self.cpsr.zero() == 0, // HI!
+            9 => self.cpsr.carry() == 0 && self.cpsr.zero() == 1, // LO
+            10 => self.cpsr.negative() == self.cpsr.overflow(),   // GE 
+            11 => self.cpsr.negative() != self.cpsr.overflow(),   // LT
+            12 => self.cpsr.zero() == 0 && (self.cpsr.negative() == self.cpsr.overflow()), // GT
+            13 => self.cpsr.zero() == 1 || (self.cpsr.negative() != self.cpsr.overflow()), // LE
+            14 => true, // AL
+            _  => panic!("CONDITION CODE NV!\n")
+        }
+    }
+}
