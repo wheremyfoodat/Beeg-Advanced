@@ -1,0 +1,14 @@
+[package]
+name = "hewwo"
+version = "0.0.0"
+edition = "2018"
+publish = false
+
+[dependencies]
+bitfield = "0.13.2"
+sfml = "0.15.1"
+imgui = "0.4.0"
+imgui-gfx-renderer = "0.4.0"
+imgui-winit-support = "0.4.0"
+imgui-glium-renderer = "0.4.0"
+glium = "0.27.0"
