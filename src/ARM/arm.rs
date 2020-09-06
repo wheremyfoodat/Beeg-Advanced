@@ -35,6 +35,10 @@ impl CPU {
                 self.armLUT[x] = Self::ARM_handleLoadStoreImm;
             }
 
+            else if (x >> 4) == 0b0001 {
+                self.armLUT[x] = Self::ARM_handlePSRTransfer;
+            }
+
             else {
                 self.armLUT[x] = Self::ARM_handleUndefined;
             }
