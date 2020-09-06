@@ -23,12 +23,12 @@ impl CPU {
                 match isByte {
                     true => match isUser {
                         true => todo!("[ARM] Implement LDRBT"),
-                        false => todo!("Implement LDRB")
+                        false => todo!("[ARM] Implement LDRB\n")
                     }
 
                     false => match isUser {
-                        true => todo!("[ARM] Implement LDRT"),
-                        false => todo!("[ARM] Implement LDR")
+                        true => todo!("[ARM] Implement LDRT\n"),
+                        false => todo!("[ARM] Implement LDR\n")
                     }
                 }
             }
@@ -36,12 +36,12 @@ impl CPU {
             false => {
                 match isByte {
                     true => match isUser {
-                        true => todo!("[ARM] Implement STRBT"),
-                        false => todo!("[ARM] Implement STRB")
+                        true => todo!("[ARM] Implement STRBT\n"),
+                        false => todo!("[ARM] Implement STRB\n")
                     }
 
                     false => match isUser {
-                        true => todo!("[ARM] Implement STRT"),
+                        true => todo!("[ARM] Implement STRT\n"),
                         false => self.ARM_STR(rdIndex, address, bus)
                     }
                 }
@@ -70,7 +70,7 @@ impl CPU {
 
         match addrMode {
             LoadStoreAddrModes::ImmediateOffset => offset = instruction & 0xFFF,
-            _ => todo!("Implemented ARM load store addr modes")
+            _ => todo!("[ARM] Implement ARM load store addr modes\n")
         }
 
         match addToBase {
@@ -84,7 +84,7 @@ impl CPU {
             }
 
             else {
-                todo!("LDR/STR with Rn == Rd\n")
+                todo!("[ARM] LDR/STR with Rn == Rd\n")
             }
         }
 
