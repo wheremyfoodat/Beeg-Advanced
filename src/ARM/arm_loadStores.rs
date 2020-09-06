@@ -97,6 +97,6 @@ impl CPU {
     fn ARM_STR(&mut self, rdIndex: u32, address: u32, bus: &mut Bus) {
         let mut source = self.getGPR(rdIndex);
         if rdIndex == 15 { source += 4; } // When storing r15, it's 3 steps ahead instead of 2
-        bus.write32 (address & 0xFFFFFFFC, address); // STR forcibly word-aligns the addr
+        bus.write32 (address & 0xFFFFFFFC, source); // STR forcibly word-aligns the addr
     }
 }
