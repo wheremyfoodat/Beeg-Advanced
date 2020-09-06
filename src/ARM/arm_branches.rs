@@ -7,22 +7,20 @@ use crate::cpu::CPUModes;
 use crate::isBitSet;
 
 impl CPU {
-    pub fn ARM_handleBranch (&mut self, bus: &Bus, instruction: u32) {
+    pub fn ARM_handleBranch (&mut self, bus: &mut Bus, instruction: u32) {
         let pc = self.getGPR(15);
 
         if isBitSet!(instruction, 24) { // BL (handle link bit)
-            self.setGPR(14, pc - 4);
+            self.setGPR(14, pc - 4, bus);
         }
 
-        let mut imm = (instruction & 0xFFFFFF) as u32;
+        let mut imm = (instruction & 0xFFFFFF) as i32;
         if isBitSet!(imm, 23) {
             imm |= 0x3F000000
         }
 
         imm <<= 2;
-        let addr = pc + imm;
-        self.setGPR(15, addr);
-        
-        self.refillPipeline(bus);
+        let addr = pc + imm as u32;
+        self.setGPR(15, addr, bus);
     }
 }
