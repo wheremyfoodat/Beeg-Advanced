@@ -4,6 +4,7 @@ use crate::bus::*;
 
 bitfield!{
     pub struct PSR(u32);
+    pub getRaw,        setRaw:        0, 31;
     pub getMode,       setMode:       4, 0;
     pub isThumb,       setThumbState: 5, 5;
     pub getFIQDisable, setFIQDisable: 6, 6;
@@ -21,24 +22,57 @@ pub struct CPU {
     pub spsr: PSR,
     pub pipeline: [u32; 3],
     pub armLUT: [fn(&mut CPU, &mut Bus, u32); 4096], 
-    pub thumbLUT: [fn(&mut CPU, &mut Bus, u32); 1024]
+    pub thumbLUT: [fn(&mut CPU, &mut Bus, u32); 1024],
+
+    //For r8-r12: banks[0] is a backup of the universal reg, while banks[1] is a backup of the FIQ reg
+
+    pub r8_banks: [u32; 2],
+    pub r9_banks: [u32; 2],
+    pub r10_banks: [u32; 2],
+    pub r11_banks: [u32; 2],
+    pub r12_banks: [u32; 2],
+
+    // 0:Sys/User  1: FIQ  2: SVC  3: ABT  4: IRQ  5: UND
+
+    pub r13_banks: [u32; 6],
+    pub r14_banks: [u32; 6],
+    pub spsr_banks: [PSR; 5]
 }
 
-pub enum CPUModes {
+pub enum CPUStates {
     ARM,
     Thumb
 }
 
+pub enum CPUModes {
+    User_mode = 0x10,
+    FIQ_mode,
+    IRQ_mode,
+    SVC_mode,
+    ABT_mode  = 0x17,
+    UND_mode  = 0x1B,
+    System_mode = 0x1F
+}
 
 impl CPU {
     pub fn new() -> CPU {
         CPU {
             gprs: [0; 16],
-            cpsr: PSR(0x000000D3),
+            cpsr: PSR(0x6000001F),
             spsr: PSR(0),
             pipeline: [0; 3],
             armLUT:   [Self::ARM_handleUndefined; 4096],
-            thumbLUT: [Self::ARM_handleUndefined; 1024]
+            thumbLUT: [Self::ARM_handleUndefined; 1024],
+
+            r8_banks: [0; 2],
+            r9_banks: [0; 2],
+            r10_banks: [0; 2],
+            r11_banks: [0; 2],
+            r12_banks: [0; 2],
+        
+            r13_banks: [0; 6],
+            r14_banks: [0; 6],
+            spsr_banks: [PSR(0), PSR(0), PSR(0), PSR(0), PSR(0)]
         }
     }
 
@@ -81,20 +115,20 @@ impl CPU {
 
     pub fn advancePipeline(&mut self, bus: &Bus) {
         let mode = match self.isInARMState() {
-            true => CPUModes::ARM,
-            false => CPUModes::Thumb
+            true => CPUStates::ARM,
+            false => CPUStates::Thumb
         };
 
         self.pipeline[0] = self.pipeline[1];
         self.pipeline[1] = self.pipeline[2];
         
         match mode {
-            CPUModes::ARM => {
+            CPUStates::ARM => {
                 self.gprs[15] += 4;
                 self.pipeline[2] = bus.read32(self.getGPR(15));
             },
 
-            CPUModes::Thumb => {
+            CPUStates::Thumb => {
                 self.gprs[15] += 2;
                 self.pipeline[2] = bus.read16(self.getGPR(15)) as u32;
             }
@@ -114,6 +148,95 @@ impl CPU {
             self.pipeline[1] = bus.read16 (self.gprs[15] + 2) as u32;
             self.pipeline[2] = bus.read16 (self.gprs[15] + 4) as u32;
             self.gprs[15] += 4;
+        }
+    }
+
+    pub fn setCPSR(&mut self, val: u32) {
+        self.cpsr.setRaw(val);
+        self.changeMode(val & 0x1F);
+    }
+
+    pub fn cpuModeToArrayIndex(mode: u32) -> usize {
+        match mode {
+            0x10 | 0x1F => 0,
+            0x11 => 1,
+            0x12 => 2,
+            0x13 => 3,
+            0x17 => 4,
+            0x1B => 5,
+            _ => panic!("Invalid CPU mode!\n")
+        }
+    }
+
+    pub fn changeMode (&mut self, newMode: u32) {
+        let currentMode = self.cpsr.getMode();
+        
+        if currentMode == newMode {
+            return;
+        }
+
+        match currentMode { // store r8-r12
+            0x11 => { // FIQ mode
+                self.r8_banks[1] = self.gprs[8];
+                self.r9_banks[1] = self.gprs[9];
+                self.r10_banks[1] = self.gprs[10];
+                self.r11_banks[1] = self.gprs[11];
+                self.r12_banks[1] = self.gprs[12];
+            },
+
+            _ => {
+                self.r8_banks[0] = self.gprs[8];
+                self.r9_banks[0] = self.gprs[9];
+                self.r10_banks[0] = self.gprs[10];
+                self.r11_banks[0] = self.gprs[11];
+                self.r12_banks[0] = self.gprs[12];
+            }
+        }
+
+        match currentMode { // bank r13, 14, spsr
+            0x10 | 0x1F => { // user and system mode 
+                self.r13_banks[0] = self.gprs[13];
+                self.r14_banks[0] = self.gprs[14];
+            }
+
+            _ => { 
+                let index = CPU::cpuModeToArrayIndex(currentMode);
+                self.r13_banks[index] = self.gprs[13];
+                self.r14_banks[index] = self.gprs[14];
+                self.spsr_banks[index].setRaw(self.spsr.getRaw());
+            }
+        }
+
+        match newMode { // fetch new r8-r12
+            0x11 => { // FIQ mode
+                self.gprs[8] = self.r8_banks[1];
+                self.gprs[9] = self.r9_banks[1];
+                self.gprs[10] = self.r10_banks[1];
+                self.gprs[11] = self.r11_banks[1];
+                self.gprs[12] = self.r12_banks[1];
+            }
+
+            _ => { // rest of the modes
+                self.gprs[8] = self.r8_banks[0];
+                self.gprs[9] = self.r9_banks[0];
+                self.gprs[10] = self.r10_banks[0];
+                self.gprs[11] = self.r11_banks[0];
+                self.gprs[12] = self.r12_banks[0];
+            }
+        }
+
+        match newMode { // fetch new r13, r14, spsr
+            0x10 | 0x1F => { // User/System
+                self.gprs[13] = self.r13_banks[0];
+                self.gprs[14] = self.r14_banks[0];
+            }
+
+            _ => { // rest of the modes
+                let index = CPU::cpuModeToArrayIndex(currentMode);
+                self.gprs[13] = self.r13_banks[index];
+                self.gprs[14] = self.r14_banks[index];
+                self.spsr.setRaw(self.spsr_banks[index].getRaw())
+            }
         }
     }
 
