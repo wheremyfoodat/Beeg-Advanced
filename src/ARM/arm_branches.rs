@@ -23,4 +23,10 @@ impl CPU {
         let addr = pc + imm as u32;
         self.setGPR(15, addr, bus);
     }
+
+    pub fn ARM_handleBranchExchange (&mut self, bus: &mut Bus, instruction: u32) {
+        let rm = self.getGPR(instruction & 0xF);
+        self.cpsr.setThumbState(rm & 1);
+        self.setGPR(15, rm, bus);
+    }
 }

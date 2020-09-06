@@ -20,16 +20,23 @@ impl CPU {
 
     pub fn ARM_handleUndefined (&mut self, bus: &mut Bus, instruction: u32) {
         self.logState();
+        let lutIndex = (((instruction >> 4) & 0xF) | ((instruction >> 16) & 0xFF0)) as usize;
+        println!("LUT index: {:b}", lutIndex);
         panic!("Undefined or unimplemented instruction {:08X} at PC: {:08X}\n", instruction, self.getGPR(15)-8)
     }
 
     pub fn populateARMLut (&mut self) {
         for x in 0..4096 {
-            if ((x >> 7) & 0x1F) == 0b00110 && ((x >> 4) & 3) == 00 {
+            
+            if x == 0b000100100001 {
+                self.armLUT[x] = Self::ARM_handleBranchExchange
+            }
+
+            else if ((x >> 7) & 0x1F) == 0b00110 && ((x >> 4) & 3) == 00 {
                 self.armLUT[x] = Self::ARM_handleUndefined
             }
 
-            if (x >> 9) == 0b101 { // Brunch and Brunch with Link
+            else if (x >> 9) == 0b101 { // Brunch and Brunch with Link
                 self.armLUT[x] = Self::ARM_handleBranch;
             }
 
