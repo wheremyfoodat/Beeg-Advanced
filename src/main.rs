@@ -1,10 +1,13 @@
 #![warn(clippy::all)]
+#![allow(nonstandard_style)]
 
 pub mod gba;
 pub mod bus;
 pub mod cpu;
 pub mod mem;
+pub mod ppu;
 pub mod ARM;
+pub mod barrelShifter;
 pub mod helpers;
 //mod frontend;
 
@@ -34,7 +37,7 @@ fn main() {
     let mut gba = GBA::new("ROMs/ARMWrestlerFixed.gba".to_string());
     gba.init();
 
-    while true {
+    loop {
         gba.step();
     }
 }

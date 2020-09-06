@@ -1,13 +1,16 @@
 use crate::mem::*;
+use crate::ppu::*;
 
 pub struct Bus {
-    mem: Memory
+    mem: Memory,
+    ppu: PPU
 }
 
 impl Bus {
     pub fn new(romPath: String) -> Bus {
         Bus {
-            mem: Memory::new(romPath)
+            mem: Memory::new(romPath),
+            ppu: PPU::new()
         }
     }
 
@@ -45,6 +48,17 @@ impl Bus {
     }
 
     pub fn write32 (&mut self, address: u32, val: u32) {
-        
+        match (address >> 24) & 0xF { // these 4 bits show us which memory range the addr belongs to
+            4 => self.writeIO32(address, val),
+            _=> panic!("32-bit write to unimplemented mem addr {:08X}\n", address)
+        }
+    }
+
+    pub fn writeIO32 (&mut self, address: u32, val: u32) {
+        match address {
+            0x4000000 => self.ppu.dispcnt = val,
+            0x4000208 => self.mem.ime = (val & 1) == 1,
+            _ => todo!("Unimplemented 32-bit write to IO address {:08X}\n", address)
+        }
     }
 }
