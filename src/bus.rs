@@ -19,7 +19,18 @@ impl Bus {
     }
 
     pub fn read16 (&self, address: u32) -> u16 {
-        todo!("Unimplemented 16-bit read at address {:08X}", address);
+        let mut val: u16;
+
+        match (address >> 24) & 0xF { // these 4 bits show us which memory range the addr belongs to
+            8 => {
+                    val = self.mem.ROM[(address - 0x8000000) as usize] as u16;
+                    val |= (self.mem.ROM[(address - 0x8000000 + 1) as usize] as u16) << 8;
+            },
+
+            _=> panic!("16-bit read from unimplemented mem addr {:08X}\n", address)
+        }
+
+        val
     }
 
     pub fn read32 (&self, address: u32) -> u32 {

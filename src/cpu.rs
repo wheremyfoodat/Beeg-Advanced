@@ -77,7 +77,14 @@ impl CPU {
     }
 
     pub fn init(&mut self, bus: &Bus) {
-        self.gprs[15] = 0x8000000;
+        // skipping BIOS:
+        self.gprs[0] = 0x08000000;
+        self.gprs[1] = 0x000000EA;
+        self.gprs[13] = 0x03007F00;
+        self.r13_banks[2] = 0x03007FE0; // SP SVC
+        self.r13_banks[4] = 0x03007FA0; // SP IRQ
+
+        self.gprs[15] = 0x08000000;
         self.refillPipeline(bus);
         self.populateARMLut();
     }
@@ -193,7 +200,7 @@ impl CPU {
             }
         }
 
-        match currentMode { // bank r13, 14, spsr
+        match currentMode { // store r13, 14, spsr
             0x10 | 0x1F => { // user and system mode 
                 self.r13_banks[0] = self.gprs[13];
                 self.r14_banks[0] = self.gprs[14];
@@ -203,7 +210,7 @@ impl CPU {
                 let index = CPU::cpuModeToArrayIndex(currentMode);
                 self.r13_banks[index] = self.gprs[13];
                 self.r14_banks[index] = self.gprs[14];
-                self.spsr_banks[index].setRaw(self.spsr.getRaw());
+                self.spsr_banks[index-1].setRaw(self.spsr.getRaw());
             }
         }
 
@@ -235,7 +242,7 @@ impl CPU {
                 let index = CPU::cpuModeToArrayIndex(currentMode);
                 self.gprs[13] = self.r13_banks[index];
                 self.gprs[14] = self.r14_banks[index];
-                self.spsr.setRaw(self.spsr_banks[index].getRaw())
+                self.spsr.setRaw(self.spsr_banks[index-1].getRaw())
             }
         }
     }
@@ -268,7 +275,7 @@ impl CPU {
 
     pub fn logState (&mut self) {
         for i in 0..8 {
-            println!("r{}: {:08X} r{}: {:08X}", i * 2, self.gprs[i * 2], i *2 + 1, self.gprs[i * 2 + 1]);
+            println!("r{}: {:08X} r{}: {:08X}", i * 2, self.getGPR(i * 2), i *2 + 1, self.getGPR(i * 2 + 1));
         }
 
         println!("CPSR: {:08X}\nSPSR: {:08X}", self.cpsr.getRaw(), self.spsr.getRaw())
