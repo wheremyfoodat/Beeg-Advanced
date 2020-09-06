@@ -22,7 +22,7 @@ impl CPU {
 
         match opcode {
             13 => self.ARM_MOV(rdIndex, operand2, affectFlags, bus),
-            _  => todo!("Unimplemented DP instruciton\n")
+            _  => todo!("Unimplemented DP instruction\n")
         }
 
         if s && rdIndex == 15 {

@@ -2,6 +2,7 @@ use crate::bus::Bus;
 use crate::cpu::CPU;
 use crate::cpu::CPUModes;
 use crate::ARM::*;
+use crate::isBitSet;
 
 
 impl CPU {
@@ -13,30 +14,35 @@ impl CPU {
             return
         }
 
-        let lutIndex = (((instruction >> 4) & 0xF) | ((instruction >> 20) & 0xF0)) as usize;
+        let lutIndex = (((instruction >> 4) & 0xF) | ((instruction >> 16) & 0xFF0)) as usize;
         self.armLUT[lutIndex](self, bus, instruction);
     }
 
     pub fn ARM_handleUndefined (&mut self, bus: &mut Bus, instruction: u32) {
+        self.logState();
         panic!("Undefined or unimplemented instruction {:08X} at PC: {:08X}\n", instruction, self.getGPR(15)-8)
     }
 
     pub fn populateARMLut (&mut self) {
         for x in 0..4096 {
-            if (x >> 5) == 0b101 { // Brunch and Brunch with Link
+            if ((x >> 7) & 0x1F) == 0b00110 && ((x >> 4) & 3) == 00 {
+                self.armLUT[x] = Self::ARM_handleUndefined
+            }
+
+            if (x >> 9) == 0b101 { // Brunch and Brunch with Link
                 self.armLUT[x] = Self::ARM_handleBranch;
             }
 
-            else if (x >> 5) == 0b001 {
-                self.armLUT[x] = Self::ARM_handleDataProcessingImm;
-            }
-
-            else if (x >> 5) == 0b010 {
+            else if (x >> 9) == 0b010 {
                 self.armLUT[x] = Self::ARM_handleLoadStoreImm;
             }
 
-            else if (x >> 4) == 0b0001 {
+            else if ((x >> 7) == 0b00010 && (x & 0xF) == 0 && !isBitSet!(x, 4)) || ((x >> 7) == 0b00110 && !isBitSet!(x, 4)) {
                 self.armLUT[x] = Self::ARM_handlePSRTransfer;
+            }
+
+            else if (x >> 9) == 0b001 {
+                self.armLUT[x] = Self::ARM_handleDataProcessingImm;
             }
 
             else {

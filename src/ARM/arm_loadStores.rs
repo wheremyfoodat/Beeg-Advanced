@@ -28,7 +28,7 @@ impl CPU {
 
                     false => match isUser {
                         true => todo!("[ARM] Implement LDRT\n"),
-                        false => todo!("[ARM] Implement LDR\n")
+                        false => self.ARM_LDR(rdIndex, address, bus)
                     }
                 }
             }
@@ -98,5 +98,11 @@ impl CPU {
         let mut source = self.getGPR(rdIndex);
         if rdIndex == 15 { source += 4; } // When storing r15, it's 3 steps ahead instead of 2
         bus.write32 (address & 0xFFFFFFFC, source); // STR forcibly word-aligns the addr
+    }
+
+    fn ARM_LDR(&mut self, rdIndex: u32, address: u32, bus: &mut Bus) {
+        let mut val = bus.read32 (address & !3);
+        val = self.ROR(val, 8 * (address & 3), false);
+        self.setGPR(rdIndex, val, bus);
     }
 }
