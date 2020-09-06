@@ -4,12 +4,12 @@ use crate::bus::*;
 
 bitfield!{
     pub struct PSR(u32);
-    pub getRaw,        setRaw:        0, 31;
+    pub getRaw,        setRaw:        31, 0;
     pub getMode,       setMode:       4, 0;
     pub isThumb,       setThumbState: 5, 5;
     pub getFIQDisable, setFIQDisable: 6, 6;
     pub getIRQDisable, setIRQDisable: 7, 7;
-    pub reserved,      setReserved:   8, 27;
+    pub reserved,      setReserved:   27, 8;
     pub getOverflow,   setOverflow:   28, 28;
     pub getCarry,      setCarry:      29, 29;
     pub getZero,       setZero:       30, 30;
@@ -264,5 +264,13 @@ impl CPU {
     pub fn setSignAndZero (&mut self, val: u32) {
         self.cpsr.setZero((val == 0) as u32);
         self.cpsr.setNegative(val >> 31);
+    }
+
+    pub fn logState (&mut self) {
+        for i in 0..8 {
+            println!("r{}: {:08X} r{}: {:08X}", i * 2, self.gprs[i * 2], i *2 + 1, self.gprs[i * 2 + 1]);
+        }
+
+        println!("CPSR: {:08X}\nSPSR: {:08X}", self.cpsr.getRaw(), self.spsr.getRaw())
     }
 }
