@@ -7,6 +7,7 @@ pub mod cpu;
 pub mod mem;
 pub mod ppu;
 pub mod ARM;
+pub mod Thumb;
 pub mod barrelShifter;
 pub mod helpers;
 //mod frontend;

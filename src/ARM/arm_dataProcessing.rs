@@ -52,14 +52,7 @@ impl CPU {
     }
 
     pub fn ARM_ADD(&mut self, rdIndex: u32, operand1: u32, operand2: u32, affectFlags: bool, bus: &mut Bus) {
-        let res = operand1 as u64 + operand2 as u64;
-        
-        if affectFlags {
-            self.cpsr.setCarry(((res >> 32) > 0) as u32);
-            self.setSignAndZero(res as u32);
-            self.cpsr.setOverflow(((operand1 >> 31) == (operand2 >> 31) && (operand1 >> 31) != (res as u32 >> 31)) as u32)
-        }
-
-        self.setGPR(rdIndex, res as u32, bus);
+        let res = self._ADD(operand1, operand2, affectFlags);
+        self.setGPR(rdIndex, res , bus);
     }
 }

@@ -1,5 +1,6 @@
 use bitfield::*;
 use crate::ARM::*;
+use crate::Thumb::*;
 use crate::bus::*;
 
 bitfield!{
@@ -87,6 +88,7 @@ impl CPU {
         self.gprs[15] = 0x08000000;
         self.refillPipeline(bus);
         self.populateARMLut();
+        self.populateThumbLUT();
     }
 
     pub fn getGPR(&mut self, gpr: u32) -> u32 {
@@ -114,7 +116,7 @@ impl CPU {
         }
 
         else {
-            todo!("Implement THUMB!\n");
+            self.executeThumbInstruction(bus, self.pipeline[0]);
         }
 
         self.advancePipeline(bus)
@@ -278,6 +280,39 @@ impl CPU {
             println!("r{}: {:08X} r{}: {:08X}", i * 2, self.getGPR(i * 2), i *2 + 1, self.getGPR(i * 2 + 1));
         }
 
-        println!("CPSR: {:08X}\nSPSR: {:08X}", self.cpsr.getRaw(), self.spsr.getRaw())
+        println!("CPSR: {:08X}\nSPSR: {:08X}", self.cpsr.getRaw(), self.spsr.getRaw());
+        println!("Negative: {} Zero: {}", self.cpsr.getNegative(), self.cpsr.getZero());
+        println!("Carry: {} Overflow: {}\n", self.cpsr.getCarry(), self.cpsr.getOverflow());
+    }
+
+    pub fn _ADD(&mut self, operand1: u32, operand2: u32, affectFlags: bool) -> u32 {
+        let res = operand1 as u64 + operand2 as u64;
+        
+        if affectFlags {
+            self.cpsr.setCarry(((res >> 32) > 0) as u32);
+            self.setSignAndZero(res as u32);
+            self.cpsr.setOverflow(((operand1 >> 31) == (operand2 >> 31) && (operand1 >> 31) != (res as u32 >> 31)) as u32)
+        }
+
+        res as u32
+    }
+
+    pub fn _SUB(&mut self, operand1: u32, operand2: u32, affectFlags: bool) -> u32 {
+        let res = operand1.wrapping_sub(operand2);
+
+        if (affectFlags) {
+            self.cpsr.setCarry((res <= operand1) as u32);
+            self.setSignAndZero(res);
+            self.cpsr.setOverflow(((operand1 >> 31) != (operand2 >> 31) && (operand2 >> 31) == (res >> 31)) as u32);
+        }
+
+        res
+    }
+
+    pub fn _BIC(&mut self, operand1: u32, operand2: u32, affectFlags: bool) -> u32 {
+        let res = operand1 & !operand2;
+        if affectFlags { self.setSignAndZero(res) }
+        
+        res
     }
 }

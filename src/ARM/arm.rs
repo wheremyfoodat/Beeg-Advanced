@@ -20,9 +20,9 @@ impl CPU {
 
     pub fn ARM_handleUndefined (&mut self, bus: &mut Bus, instruction: u32) {
         self.logState();
-        let lutIndex = (((instruction >> 4) & 0xF) | ((instruction >> 16) & 0xFF0)) as usize;
+        let lutIndex = ((instruction >> 4) & 0xF) | ((instruction >> 16) & 0xFF0);
         println!("LUT index: {:b}", lutIndex);
-        panic!("Undefined or unimplemented instruction {:08X} at PC: {:08X}\n", instruction, self.getGPR(15)-8)
+        panic!("[ARM] Undefined or unimplemented instruction {:08X} at PC: {:08X}\n", instruction, self.getGPR(15)-8)
     }
 
     pub fn populateARMLut (&mut self) {

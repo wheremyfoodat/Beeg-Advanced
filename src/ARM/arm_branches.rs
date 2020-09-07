@@ -20,7 +20,7 @@ impl CPU {
         }
 
         imm <<= 2;
-        let addr = pc + imm as u32;
+        let addr = pc.wrapping_add(imm as u32);
         self.setGPR(15, addr, bus);
     }
 
