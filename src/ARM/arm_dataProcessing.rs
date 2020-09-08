@@ -20,8 +20,10 @@ impl CPU {
         let operand2 = self.ROR(imm, rot_imm * 2, affectFlags);
         let opcode = (instruction >> 21) & 0xF;
 
+        debug_assert!(!(s && rdIndex == 15));
+
         match opcode {
-            0   => todo!("[ARM] Implement AND\n"),
+            0   => self.ARM_AND(rdIndex, operand1, operand2, affectFlags, bus),
             1   => todo!("[ARM] Implement EOR\n"),
             2   => todo!("[ARM] Implement SUB\n"),
             3   => todo!("[ARM] Implement RSB\n"),
@@ -38,15 +40,11 @@ impl CPU {
             14  => todo!("[ARM] Implement BIC\n"),
              _  => todo!("[ARM] Implement MVN\n")
         }
-
-        if s && rdIndex == 15 {
-            todo!("DP instruction with rd == 15 and s bit set")
-        }
     }
 
     pub fn ARM_MOV(&mut self, rdIndex: u32, operand2: u32, affectFlags: bool, bus: &mut Bus) {
         self.setGPR(rdIndex, operand2, bus);
-        if (affectFlags) {
+        if affectFlags {
             self.setSignAndZero(operand2);
         }
     }
@@ -54,5 +52,10 @@ impl CPU {
     pub fn ARM_ADD(&mut self, rdIndex: u32, operand1: u32, operand2: u32, affectFlags: bool, bus: &mut Bus) {
         let res = self._ADD(operand1, operand2, affectFlags);
         self.setGPR(rdIndex, res , bus);
+    }
+
+    pub fn ARM_AND(&mut self, rdIndex: u32, operand1: u32, operand2: u32, affectFlags: bool, bus: &mut Bus) {
+        let res = self._AND(operand1, operand2, affectFlags);
+        self.setGPR(rdIndex, res, bus);
     }
 }

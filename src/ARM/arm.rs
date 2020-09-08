@@ -10,7 +10,6 @@ impl CPU {
         println!("Attempting to execute instruction: {:08X}", instruction);
 
         if !self.isConditionTrue(instruction >> 28) {
-            self.advancePipeline(bus);
             return
         }
 

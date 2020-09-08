@@ -297,6 +297,16 @@ impl CPU {
         res as u32
     }
 
+    pub fn _AND(&mut self, operand1: u32, operand2: u32, affectFlags: bool) -> u32 {
+        let res = operand1 & operand2;
+
+        if affectFlags {
+            self.setSignAndZero(res);
+        }
+
+        res
+    }
+
     pub fn _SUB(&mut self, operand1: u32, operand2: u32, affectFlags: bool) -> u32 {
         let res = operand1.wrapping_sub(operand2);
 
