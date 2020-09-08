@@ -7,6 +7,10 @@ use crate::cpu::CPUModes;
 #[macro_use]
 use crate::isBitSet;
 
+// Todo: clean this up
+// Every addressing mode has its own handler so as not to have to decode instructions at runtime
+// It looks like shit
+
 impl CPU {
     pub fn ARM_handleDataProcessingImm(&mut self, bus: &mut Bus, instruction: u32) {
         let imm = instruction & 0xFF;
@@ -33,7 +37,7 @@ impl CPU {
             7   => todo!("[ARM] Implement RSC\n"),
             8   => todo!("[ARM] Implement TST\n"),
             9   => todo!("[ARM] Implement TEQ\n"),
-            10  => todo!("[ARM] Implement CMP\n"),
+            10  => self._CMP(operand1, operand2),
             11  => todo!("[ARM] Implement CMN\n"),
             12  => todo!("[ARM] Implement ORR\n"),
             13  => self.ARM_MOV(rdIndex, operand2, affectFlags, bus),
@@ -42,6 +46,60 @@ impl CPU {
         }
     }
 
+    pub fn ARM_handleDataProcessingRegister (&mut self, bus: &mut Bus, instruction: u32) {
+        todo!("[ARM] Data Processing with register shift\n")
+    }
+
+    pub fn ARM_handleDataProcessingImmShift (&mut self, bus: &mut Bus, instruction: u32) {
+        let s = isBitSet!(instruction, 20);
+        let rdIndex = (instruction >> 12) & 0xF; 
+        let rnIndex = (instruction >> 16) & 0xF;
+        let rmIndex = instruction & 0xF;    
+
+        let shift = (instruction >> 5) & 3;
+        let shiftImm = (instruction >> 7) & 31;
+        let opcode = (instruction >> 21) & 0xF;
+        let affectFlags = s && rdIndex != 15;
+        debug_assert!(!(s && rdIndex == 15));
+
+        let rn = self.getGPR(rnIndex);
+        let mut rm = self.getGPR(rmIndex);
+
+        match shift {
+            0 => rm = self.LSL(rm, shiftImm, affectFlags),
+            1 => rm = self.LSR(rm, shiftImm, affectFlags),
+            2 => rm = self.ASR(rm, shiftImm, affectFlags),
+            _ => {
+                if shiftImm != 0 {
+                    rm = self.ROR(rm, shiftImm, affectFlags);
+                }
+
+                else {
+                    todo!("[ARM] Implement RRX\n");
+                }
+            }
+        }
+
+        match opcode {
+            0   => self.ARM_AND(rdIndex, rn, rm, affectFlags, bus),
+            1   => todo!("[ARM] Implement EOR\n"),
+            2   => todo!("[ARM] Implement SUB\n"),
+            3   => todo!("[ARM] Implement RSB\n"),
+            4   => self.ARM_ADD(rdIndex, rn, rm, affectFlags, bus),
+            5   => todo!("[ARM] Implement ADC\n"),
+            6   => todo!("[ARM] Implement SBC\n"),
+            7   => todo!("[ARM] Implement RSC\n"),
+            8   => todo!("[ARM] Implement TST\n"),
+            9   => todo!("[ARM] Implement TEQ\n"),
+            10  => self._CMP(rn, rm),
+            11  => todo!("[ARM] Implement CMN\n"),
+            12  => todo!("[ARM] Implement ORR\n"),
+            13  => self.ARM_MOV(rdIndex, rm, affectFlags, bus),
+            14  => todo!("[ARM] Implement BIC\n"),
+             _  => todo!("[ARM] Implement MVN\n")
+        }
+    }
+    
     pub fn ARM_MOV(&mut self, rdIndex: u32, operand2: u32, affectFlags: bool, bus: &mut Bus) {
         self.setGPR(rdIndex, operand2, bus);
         if affectFlags {
