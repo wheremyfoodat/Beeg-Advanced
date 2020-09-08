@@ -15,7 +15,7 @@ impl CPU {
     }
 
     pub fn LSL (&mut self, number: u32, mut amount: u32, affectFlags: bool) -> u32 {
-        println!("LSL executed! In case of a bug, revisit this!\n");
+        //println!("LSL executed! In case of a bug, revisit this!\n");
         amount &= 31;
         let res = number << amount;
 
@@ -27,7 +27,7 @@ impl CPU {
     }
 
     pub fn LSR (&mut self, number: u32, mut amount: u32, affectFlags: bool) -> u32 {
-        println!("LSR executed! In case of a bug, revisit this!\n");
+        //println!("LSR executed! In case of a bug, revisit this!\n");
         amount &= 31;
         let res = number >> amount;
 

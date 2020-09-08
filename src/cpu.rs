@@ -307,6 +307,26 @@ impl CPU {
         res
     }
 
+    pub fn _ORR(&mut self, operand1: u32, operand2: u32, affectFlags: bool) -> u32 {
+        let res = operand1 | operand2;
+
+        if affectFlags {
+            self.setSignAndZero(res);
+        }
+
+        res
+    }
+
+    pub fn _EOR(&mut self, operand1: u32, operand2: u32, affectFlags: bool) -> u32 {
+        let res = operand1 ^ operand2;
+
+        if affectFlags {
+            self.setSignAndZero(res);
+        }
+
+        res
+    }
+
     pub fn _SUB(&mut self, operand1: u32, operand2: u32, affectFlags: bool) -> u32 {
         let res = operand1.wrapping_sub(operand2);
 
@@ -331,5 +351,13 @@ impl CPU {
         self.cpsr.setCarry((res <= operand1) as u32);
         self.setSignAndZero(res);
         self.cpsr.setOverflow(((operand1 >> 31) != (operand2 >> 31) && (operand2 >> 31) == (res >> 31)) as u32);
+    }
+
+    pub fn _TEQ(&mut self, operand1: u32, operand2: u32) {
+        self.setSignAndZero(operand1 ^ operand2)
+    }
+
+    pub fn _TST(&mut self, operand1: u32, operand2: u32) {
+        self.setSignAndZero(operand1 & operand2)
     }
 }

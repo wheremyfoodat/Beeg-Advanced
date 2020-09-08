@@ -1,16 +1,19 @@
 use crate::mem::*;
 use crate::ppu::*;
+use crate::joypad::Joypad;
 
 pub struct Bus {
     mem: Memory,
-    ppu: PPU
+    ppu: PPU,
+    joypad: Joypad
 }
 
 impl Bus {
     pub fn new(romPath: String) -> Bus {
         Bus {
             mem: Memory::new(romPath),
-            ppu: PPU::new()
+            ppu: PPU::new(),
+            joypad: Joypad::new()
         }
     }
 
@@ -19,7 +22,11 @@ impl Bus {
     }
 
     pub fn read8 (&self, address: u32) -> u8 {
-        todo!("Unimplemented 8-bit read at address {:08X}", address);
+        match (address >> 24) & 0xF {
+            3 => self.mem.iWRAM[(address - 0x3000000) as usize],
+            8 => self.mem.ROM[(address - 0x8000000) as usize],
+            _ => todo!("Unimplemented 8-bit read at address {:08X}", address)
+        }
     }
 
     pub fn read16 (&self, address: u32) -> u16 {
@@ -27,6 +34,11 @@ impl Bus {
         let mut val: u16;
 
         match (address >> 24) & 0xF { // these 4 bits show us which memory range the addr belongs to
+            3 => {
+                val = self.mem.iWRAM[(address - 0x3000000) as usize] as u16;
+                val |= (self.mem.iWRAM[(address - 0x3000000 + 1) as usize] as u16) << 8;
+            }
+
             4 => val = self.readIO16(address),
             
             8 | 9 => {
@@ -66,18 +78,31 @@ impl Bus {
     }
 
     pub fn write8 (&mut self, address: u32, val: u8) {
-        todo!("8-bit writes unimplemented")
+        match (address >> 24) & 0xF {
+            3 => self.mem.iWRAM[(address - 0x3000000) as usize] = val,
+            _ => todo!("Unimplemented 8-bit write at address {:08X}", address)
+        }
     }
 
     pub fn write16 (&mut self, address: u32, val: u16) {
         match (address >> 24) & 0xF { // these 4 bits show us which memory range the addr belongs to
+            3 => {
+                self.mem.iWRAM[(address - 0x3000000) as usize] = (val & 0xFF) as u8;
+                self.mem.iWRAM[(address - 0x3000000 + 1) as usize] = (val >> 8) as u8;
+            }
+            
             5 => {
                 self.ppu.paletteRAM[(address - 0x5000000) as usize] = (val & 0xFF) as u8;
                 self.ppu.paletteRAM[(address - 0x5000000 + 1) as usize] = (val >> 8) as u8;
             }
 
+            6 => {
+                self.ppu.VRAM[(address - 0x6000000) as usize] = (val & 0xFF) as u8;
+                self.ppu.VRAM[(address - 0x6000000 + 1) as usize] = (val >> 8) as u8;
+            }
+
             _ => {
-                todo!("Unimplemented 16-bit write to addr {}", address);
+                todo!("Unimplemented 16-bit write to addr {:08X}", address);
             }
         }
     }
@@ -106,6 +131,7 @@ impl Bus {
     pub fn readIO16 (&self, address: u32) -> u16 {
         match address {
             0x4000004 => self.ppu.dispstat.getRaw(),
+            0x4000130 => {println!("Polled joypad!\n"); self.joypad.keyinput.getRaw()},
             _ => panic!("Unimplemented 16-bit read from MMIO address {:08X}", address)
         }
     }

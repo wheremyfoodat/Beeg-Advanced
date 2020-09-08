@@ -27,7 +27,7 @@ impl CPU {
                 match isByte {
                     true => match isUser {
                         true => todo!("[ARM] Implement LDRBT"),
-                        false => {self.logState(); todo!("[ARM] Implement LDRB\n")}
+                        false => self.ARM_LDRB(rdIndex, address, bus)
                     }
 
                     false => match isUser {
@@ -41,7 +41,7 @@ impl CPU {
                 match isByte {
                     true => match isUser {
                         true => todo!("[ARM] Implement STRBT\n"),
-                        false => todo!("[ARM] Implement STRB\n")
+                        false => self.ARM_STRB(rdIndex, address, bus)
                     }
 
                     false => match isUser {
@@ -214,6 +214,10 @@ impl CPU {
         self.setGPR(rdIndex, val as u32, bus);
     }
 
+    fn ARM_LDRB(&mut self, rdIndex: u32, address: u32, bus: &mut Bus) {
+        self.setGPR(rdIndex, bus.read8(address) as u32, bus);
+    }
+
     fn ARM_STR(&mut self, rdIndex: u32, address: u32, bus: &mut Bus) {
         let mut source = self.getGPR(rdIndex);
         if rdIndex == 15 { source += 4; } // When storing r15, it's 3 steps ahead instead of 2
@@ -223,5 +227,10 @@ impl CPU {
     fn ARM_STRH(&mut self, rdIndex: u32, address: u32, bus: &mut Bus) {
         let source = self.getGPR(rdIndex) as u16;
         bus.write16(address, source);
+    }
+
+    fn ARM_STRB (&mut self, rdIndex: u32, address: u32, bus: &mut Bus) {
+        let mut source = self.getGPR(rdIndex) as u8;
+        bus.write8(address, source)
     }
 }

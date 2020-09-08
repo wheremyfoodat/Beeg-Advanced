@@ -28,18 +28,18 @@ impl CPU {
 
         match opcode {
             0   => self.ARM_AND(rdIndex, operand1, operand2, affectFlags, bus),
-            1   => todo!("[ARM] Implement EOR\n"),
-            2   => todo!("[ARM] Implement SUB\n"),
+            1   => self.ARM_EOR(rdIndex, operand1, operand2, affectFlags, bus),
+            2   => self.ARM_SUB(rdIndex, operand1, operand2, affectFlags, bus),
             3   => todo!("[ARM] Implement RSB\n"),
             4   => self.ARM_ADD(rdIndex, operand1, operand2, affectFlags, bus),
             5   => todo!("[ARM] Implement ADC\n"),
             6   => todo!("[ARM] Implement SBC\n"),
             7   => todo!("[ARM] Implement RSC\n"),
-            8   => todo!("[ARM] Implement TST\n"),
-            9   => todo!("[ARM] Implement TEQ\n"),
+            8   => self._TST(operand1, operand2),
+            9   => self._TEQ(operand1, operand2),
             10  => self._CMP(operand1, operand2),
             11  => todo!("[ARM] Implement CMN\n"),
-            12  => todo!("[ARM] Implement ORR\n"),
+            12  => self.ARM_ORR(rdIndex, operand1, operand2, affectFlags, bus),
             13  => self.ARM_MOV(rdIndex, operand2, affectFlags, bus),
             14  => todo!("[ARM] Implement BIC\n"),
              _  => todo!("[ARM] Implement MVN\n")
@@ -70,18 +70,18 @@ impl CPU {
 
         match opcode {
             0   => self.ARM_AND(rdIndex, rn, rm, affectFlags, bus),
-            1   => todo!("[ARM] Implement EOR\n"),
-            2   => todo!("[ARM] Implement SUB\n"),
+            1   => self.ARM_EOR(rdIndex, rn, rm, affectFlags, bus),
+            2   => self.ARM_SUB(rdIndex, rn, rm, affectFlags, bus),
             3   => todo!("[ARM] Implement RSB\n"),
             4   => self.ARM_ADD(rdIndex, rn, rm, affectFlags, bus),
             5   => todo!("[ARM] Implement ADC\n"),
             6   => todo!("[ARM] Implement SBC\n"),
             7   => todo!("[ARM] Implement RSC\n"),
-            8   => todo!("[ARM] Implement TST\n"),
-            9   => todo!("[ARM] Implement TEQ\n"),
+            8   => self._TST(rn, rm),
+            9   => self._TEQ(rn, rm),
             10  => self._CMP(rn, rm),
             11  => todo!("[ARM] Implement CMN\n"),
-            12  => todo!("[ARM] Implement ORR\n"),
+            12  => self.ARM_ORR(rdIndex, rn, rm, affectFlags, bus),
             13  => self.ARM_MOV(rdIndex, rm, affectFlags, bus),
             14  => todo!("[ARM] Implement BIC\n"),
              _  => todo!("[ARM] Implement MVN\n")
@@ -120,18 +120,18 @@ impl CPU {
 
         match opcode {
             0   => self.ARM_AND(rdIndex, rn, rm, affectFlags, bus),
-            1   => todo!("[ARM] Implement EOR\n"),
-            2   => todo!("[ARM] Implement SUB\n"),
+            1   => self.ARM_EOR(rdIndex, rn, rm, affectFlags, bus),
+            2   => self.ARM_SUB(rdIndex, rn, rm, affectFlags, bus),
             3   => todo!("[ARM] Implement RSB\n"),
             4   => self.ARM_ADD(rdIndex, rn, rm, affectFlags, bus),
             5   => todo!("[ARM] Implement ADC\n"),
             6   => todo!("[ARM] Implement SBC\n"),
             7   => todo!("[ARM] Implement RSC\n"),
-            8   => todo!("[ARM] Implement TST\n"),
-            9   => todo!("[ARM] Implement TEQ\n"),
+            8   => self._TST(rn, rm),
+            9   => self._TEQ(rn, rm),
             10  => self._CMP(rn, rm),
             11  => todo!("[ARM] Implement CMN\n"),
-            12  => todo!("[ARM] Implement ORR\n"),
+            12  => self.ARM_ORR(rdIndex, rn, rm, affectFlags, bus),
             13  => self.ARM_MOV(rdIndex, rm, affectFlags, bus),
             14  => todo!("[ARM] Implement BIC\n"),
              _  => todo!("[ARM] Implement MVN\n")
@@ -150,8 +150,23 @@ impl CPU {
         self.setGPR(rdIndex, res , bus);
     }
 
+    pub fn ARM_SUB(&mut self, rdIndex: u32, operand1: u32, operand2: u32, affectFlags: bool, bus: &mut Bus) {
+        let res = self._SUB(operand1, operand2, affectFlags);
+        self.setGPR(rdIndex, res , bus);
+    }
+
     pub fn ARM_AND(&mut self, rdIndex: u32, operand1: u32, operand2: u32, affectFlags: bool, bus: &mut Bus) {
         let res = self._AND(operand1, operand2, affectFlags);
+        self.setGPR(rdIndex, res, bus);
+    }
+
+    pub fn ARM_ORR(&mut self, rdIndex: u32, operand1: u32, operand2: u32, affectFlags: bool, bus: &mut Bus) {
+        let res = self._ORR(operand1, operand2, affectFlags);
+        self.setGPR(rdIndex, res, bus);
+    }
+
+    pub fn ARM_EOR(&mut self, rdIndex: u32, operand1: u32, operand2: u32, affectFlags: bool, bus: &mut Bus) {
+        let res = self._EOR(operand1, operand2, affectFlags);
         self.setGPR(rdIndex, res, bus);
     }
 }

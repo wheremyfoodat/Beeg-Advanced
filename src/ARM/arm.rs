@@ -5,8 +5,7 @@ use crate::isBitSet;
 
 impl CPU {
     pub fn executeARMInstruction (&mut self, bus: &mut Bus, instruction: u32) {
-        println!("Attempting to execute instruction: {:08X}", instruction);
-
+        //println!("Attempting to execute instruction: {:08X}", instruction);
         if !self.isConditionTrue(instruction >> 28) {
             return
         }
@@ -25,7 +24,27 @@ impl CPU {
     pub fn populateARMLut (&mut self) {
         for x in 0..4096 {
 
-            if (x & 0xF) == 0b1001 {
+            if (x >> 9) == 0b100 && ((x >> 4) & 1) == 1 { // LDM
+                self.armLUT[x] = Self::ARM_handleLDM;
+            }
+
+            else if (x >> 9) == 0b100 {
+                self.armLUT[x] = Self::ARM_handleSTM;
+            }
+
+            else if (x >> 9) == 0b010 {
+                self.armLUT[x] = Self::ARM_handleLoadStoreImm;
+            }
+
+            else if (x & 0xF) == 0b1011 && (x >> 9) == 0 { // todo: separate handler for each type? (speed?)
+                self.armLUT[x] = Self::ARM_handleMiscLoadStores;
+            } 
+
+            else if (x >> 9) == 0b101 { // Brunch and Brunch with Link
+                self.armLUT[x] = Self::ARM_handleBranch;
+            }
+
+            else if (x & 0xF) == 0b1001 {
                 if (x >> 6) == 0 {
                     self.armLUT[x] = Self::ARM_handleMultiply;
                 }
@@ -42,26 +61,6 @@ impl CPU {
             else if ((x >> 7) & 0x1F) == 0b00110 && ((x >> 4) & 3) == 00 {
                 self.armLUT[x] = Self::ARM_handleUndefined
             }
-
-            else if (x >> 9) == 0b101 { // Brunch and Brunch with Link
-                self.armLUT[x] = Self::ARM_handleBranch;
-            }
-
-            else if (x >> 9) == 0b100 && ((x >> 4) & 1) == 1 { // LDM
-                self.armLUT[x] = Self::ARM_handleLDM;
-            }
-
-            else if (x >> 9) == 0b100 {
-                self.armLUT[x] = Self::ARM_handleSTM;
-            }
-
-            else if (x >> 9) == 0b010 {
-                self.armLUT[x] = Self::ARM_handleLoadStoreImm;
-            }
-
-            else if (x & 0xF) == 0b1011 && (x >> 9) == 0 { // todo: separate handler for each type? (speed?)
-                self.armLUT[x] = Self::ARM_handleMiscLoadStores;
-            } 
 
             else if ((x >> 7) == 0b00010 && (x & 0xF) == 0 && !isBitSet!(x, 4)) || ((x >> 7) == 0b00110 && !isBitSet!(x, 4)) {
                 self.armLUT[x] = Self::ARM_handlePSRTransfer;
