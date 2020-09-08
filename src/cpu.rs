@@ -315,4 +315,11 @@ impl CPU {
         
         res
     }
+
+    pub fn _CMP(&mut self, operand1: u32, operand2: u32) {
+        let res = operand1.wrapping_sub(operand2);
+        self.cpsr.setCarry((res <= operand1) as u32);
+        self.setSignAndZero(res);
+        self.cpsr.setOverflow(((operand1 >> 31) != (operand2 >> 31) && (operand2 >> 31) == (res >> 31)) as u32);
+    }
 }

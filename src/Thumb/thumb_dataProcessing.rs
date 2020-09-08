@@ -26,6 +26,13 @@ impl CPU {
         self.gprs[rdIndex as usize] = self._SUB(rd, offset, true);
     }
 
+    pub fn Thumb_handleCMPImm (&mut self, bus: &mut Bus, instruction: u32) {
+        let offset = instruction & 0xFF;
+        let rdIndex = (instruction >> 8) & 7;
+        let rd = self.gprs[rdIndex as usize];
+        self._CMP(rd, offset);    
+    }
+
     pub fn Thumb_handleAddReg (&mut self, bus: &mut Bus, instruction: u32) {
         let rdIndex = instruction & 7;
         let rsIndex = (instruction >> 3) & 7;
@@ -87,7 +94,7 @@ impl CPU {
             7 => todo!("[THUMB] Implement ROR!\n"),
             8 => todo!("[THUMB] Implement TST!\n"),
             9 => todo!("[THUMB] Implement NEG!\n"),
-            10 => todo!("[THUMB] Implement CMP!\n"),
+            10 => self._CMP(rd, rs),
             11 => todo!("[THUMB] Implement CMN!\n"),
             12 => todo!("[THUMB] Implement ORR!\n"),
             13 => todo!("[THUMB] Implement MUL!\n"),

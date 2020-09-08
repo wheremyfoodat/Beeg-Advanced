@@ -40,9 +40,21 @@ impl CPU {
                 self.armLUT[x] = Self::ARM_handleBranch;
             }
 
+            else if (x >> 9) == 0b100 && ((x >> 4) & 1) == 1 { // LDM
+                self.armLUT[x] = Self::ARM_handleLDM;
+            }
+
+            else if (x >> 9) == 0b100 {
+                self.armLUT[x] = Self::ARM_handleSTM;
+            }
+
             else if (x >> 9) == 0b010 {
                 self.armLUT[x] = Self::ARM_handleLoadStoreImm;
             }
+
+            else if (x & 0xF) == 0b1011 && (x >> 9) == 0 { // todo: separate handler for each type? (speed?)
+                self.armLUT[x] = Self::ARM_handleMiscLoadStores;
+            } 
 
             else if ((x >> 7) == 0b00010 && (x & 0xF) == 0 && !isBitSet!(x, 4)) || ((x >> 7) == 0b00110 && !isBitSet!(x, 4)) {
                 self.armLUT[x] = Self::ARM_handlePSRTransfer;

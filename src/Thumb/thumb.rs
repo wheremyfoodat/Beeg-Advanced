@@ -21,6 +21,10 @@ impl CPU {
                 self.thumbLUT[x] = Self::Thumb_handleLSL;
             }
 
+            else if (x >> 3) == 1 { // LSR rd, rs, #offset
+                self.thumbLUT[x] = Self::Thumb_handleLSR;
+            }
+
             else if (x >> 3) == 0b00010 {
                 self.thumbLUT[x] = Self::Thumb_handleASR;
             }
@@ -35,6 +39,10 @@ impl CPU {
 
             else if (x >> 3) == 0b00100 { // movs rd, #imm
                 self.thumbLUT[x] = Self::Thumb_handleMoveImm;
+            }
+
+            else if (x >> 3) == 0b00101 { // cmp rd, #imm
+                self.thumbLUT[x] = Self::Thumb_handleCMPImm;
             }
 
             else if (x >> 3) == 0b00110 { // adds rd, #imm

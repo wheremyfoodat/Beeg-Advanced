@@ -3,6 +3,10 @@ use crate::cpu::CPU;
 use crate::barrelShifter;
 use crate::isBitSet;
 
+// TODO: Clean this up
+// A case could be made for making a specific handler for each type of LDR/STRH to make the LUT faster
+// But the code would become a ton of copy paste
+
 enum LoadStoreAddrModes {
     ImmediateOffset,
     RegisterOffset,
@@ -44,6 +48,67 @@ impl CPU {
                         true => todo!("[ARM] Implement STRT\n"),
                         false => self.ARM_STR(rdIndex, address, bus)
                     }
+                }
+            }
+        }
+    }
+
+    pub fn ARM_handleMiscLoadStores (&mut self, bus: &mut Bus, instruction: u32) {
+        let mut address = 0_u32;
+        let isLoad = isBitSet!(instruction, 20);
+        let signExtend = isBitSet!(instruction, 6);
+        let isHalfword = isBitSet!(instruction, 5);
+        let rdIndex = (instruction >> 12) & 0xF;
+        debug_assert!(rdIndex != 15);
+
+        if isBitSet!(instruction, 22) { // immediate offset
+            address = self.ARM_getMiscLoadStoreAddr(LoadStoreAddrModes::ImmediateOffset, instruction, bus);
+        }
+
+        else {
+            todo!("[ARM] STRH/STRSH/STRSB/STRD with register offset")
+        }
+
+        if isLoad {
+            if isHalfword {
+                if signExtend {
+                    todo!("LDRSH!\n")
+                }
+
+                else {
+                    self.ARM_LDRH(rdIndex, address, bus);
+                }
+            }
+
+            else {
+                if signExtend {
+                    todo!("LDRSB")
+                }
+
+                else {
+                    panic!("Invalid ARM misc load at addr {:08X}", self.gprs[15] - 8);
+                }
+            }
+        }
+
+        else {
+            if isHalfword {
+                if !signExtend {
+                    self.ARM_STRH(rdIndex, address, bus);
+                }
+
+                else {
+                    todo!("STRD")
+                }
+            }
+
+            else {
+                if signExtend {
+                    todo!("LDRD")
+                }
+
+                else {
+                    panic!("Invalid ARM misc load at addr {:08X}", self.gprs[15] - 8);
                 }
             }
         }
@@ -94,15 +159,69 @@ impl CPU {
         }
     }
 
-    fn ARM_STR(&mut self, rdIndex: u32, address: u32, bus: &mut Bus) {
-        let mut source = self.getGPR(rdIndex);
-        if rdIndex == 15 { source += 4; } // When storing r15, it's 3 steps ahead instead of 2
-        bus.write32 (address & 0xFFFFFFFC, source); // STR forcibly word-aligns the addr
+    fn ARM_getMiscLoadStoreAddr (&mut self, addrMode: LoadStoreAddrModes, instruction: u32, bus: &mut Bus) -> u32 {
+        let rnIndex = (instruction >> 16) & 0xF;
+        let rdIndex = (instruction >> 12) & 0xF;
+
+        debug_assert!(rdIndex != rnIndex);
+
+
+        let rn = self.getGPR(rnIndex);
+
+        let mut offset = 0_u32;
+        let mut address = rn;
+
+        let addToBase = isBitSet!(instruction, 23);
+        let preIndexing = isBitSet!(instruction, 24);
+        let w = isBitSet!(instruction, 21);
+        let mut shouldWriteBack = !(preIndexing && !w);
+        let isLoad = isBitSet!(instruction, 20);
+
+        match addrMode {
+            LoadStoreAddrModes::ImmediateOffset => {
+                offset = (instruction & 0xF) | ((instruction >> 4) & 0xF0);
+            }
+            LoadStoreAddrModes::RegisterOffset => {
+                offset = self.getGPR(instruction & 0xF);
+            }
+
+            _ => panic!("Invalid addr mode for misc load/stores")
+        }
+
+        match addToBase {
+            true => address += offset,
+            false => address -= offset
+        }
+
+        if (shouldWriteBack) {
+            self.setGPR(rnIndex, address, bus);
+        }
+
+        match preIndexing {
+            true => address,
+            false => rn
+        }
     }
 
     fn ARM_LDR(&mut self, rdIndex: u32, address: u32, bus: &mut Bus) {
         let mut val = bus.read32 (address & !3);
         val = self.ROR(val, 8 * (address & 3), false);
         self.setGPR(rdIndex, val, bus);
+    }
+
+    fn ARM_LDRH(&mut self, rdIndex: u32, address: u32, bus: &mut Bus) {
+        let val = bus.read16(address);
+        self.setGPR(rdIndex, val as u32, bus);
+    }
+
+    fn ARM_STR(&mut self, rdIndex: u32, address: u32, bus: &mut Bus) {
+        let mut source = self.getGPR(rdIndex);
+        if rdIndex == 15 { source += 4; } // When storing r15, it's 3 steps ahead instead of 2
+        bus.write32 (address & 0xFFFFFFFC, source); // STR forcibly word-aligns the addr
+    }
+
+    fn ARM_STRH(&mut self, rdIndex: u32, address: u32, bus: &mut Bus) {
+        let source = self.getGPR(rdIndex) as u16;
+        bus.write16(address, source);
     }
 }

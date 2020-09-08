@@ -20,5 +20,6 @@ impl GBA {
 
     pub fn step(&mut self) {
         self.cpu.step(&mut self.bus);
+        self.bus.stepComponents(2);
     }
 }

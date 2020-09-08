@@ -16,7 +16,6 @@ impl CPU {
 
     pub fn LSL (&mut self, number: u32, mut amount: u32, affectFlags: bool) -> u32 {
         println!("LSL executed! In case of a bug, revisit this!\n");
-
         amount &= 31;
         let res = number << amount;
 
@@ -26,6 +25,20 @@ impl CPU {
 
         res
     }
+
+    pub fn LSR (&mut self, number: u32, mut amount: u32, affectFlags: bool) -> u32 {
+        println!("LSR executed! In case of a bug, revisit this!\n");
+        amount &= 31;
+        let res = number >> amount;
+
+        if affectFlags && amount != 0 {
+            self.cpsr.setCarry(isBitSet!(number, amount-1) as u32);
+        }
+
+        res
+    }
+
+
 
     pub fn ASR (&mut self, number: u32, mut amount: u32, affectFlags: bool) -> u32 {
         let mut res = 0_u32;
