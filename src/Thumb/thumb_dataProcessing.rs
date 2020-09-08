@@ -12,6 +12,13 @@ impl CPU {
         self.cpsr.setZero((offset == 0) as u32);
     }
 
+    pub fn Thumb_handleAddImm (&mut self, bus: &mut Bus, instruction: u32) {
+        let offset = instruction & 0xFF;
+        let rdIndex = (instruction >> 8) & 7;
+        let rd = self.gprs[rdIndex as usize];
+        self.gprs[rdIndex as usize] = self._ADD(rd, offset, true);
+    }
+
     pub fn Thumb_handleSubImm (&mut self, bus: &mut Bus, instruction: u32) {
         let offset = instruction & 0xFF;
         let rdIndex = (instruction >> 8) & 7;
@@ -106,7 +113,7 @@ impl CPU {
         match op {
             0 => todo!("[THUMB] Implement high reg ADD"),
             1 => todo!("[THUMB] Implement high reg CMP"),
-            2 => todo!("[THUMB] Implement high reg MOV"),
+            2 => self.setGPR(rdIndex, self.gprs[rsIndex as usize], bus),
             _ => self.Thumb_handleBX(rs, bus)
         }
     }

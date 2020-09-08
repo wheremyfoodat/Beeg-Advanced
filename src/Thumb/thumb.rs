@@ -6,18 +6,23 @@ use crate::isBitSet;
 
 impl CPU {
     pub fn executeThumbInstruction (&mut self, bus: &mut Bus, instruction: u32) {
-        if self.gprs[1] == 0xFD000300 {
-            panic!("Bad")
-        }
+        //if (self.gprs[15] == 0x80041E4+4) {
+        //    self.logState();
+        //    panic!("Breakpoint")
+        //}
 
         let lutIndex = (instruction >> 8) as usize;
         self.thumbLUT[lutIndex](self, bus, instruction);
     }
 
-    pub fn populateThumbLUT(&mut self) {
+    pub fn populateThumbLUT(&mut self) { // this LUT has a ton of specialized headers. this is to minimize decoding as much as possible during runtime and improve speed
         for x in 0..1024 {
-            if (x >> 3) == 0 { // MOV LSL
+            if (x >> 3) == 0 { // LSL rd, rs, #offset
                 self.thumbLUT[x] = Self::Thumb_handleLSL;
+            }
+
+            else if (x >> 3) == 0b00010 {
+                self.thumbLUT[x] = Self::Thumb_handleASR;
             }
             
             else if (x >> 3) == 0b10011 { // SP-relative load
@@ -32,12 +37,32 @@ impl CPU {
                 self.thumbLUT[x] = Self::Thumb_handleMoveImm;
             }
 
+            else if (x >> 3) == 0b00110 { // adds rd, #imm
+                self.thumbLUT[x] = Self::Thumb_handleAddImm;
+            }
+
             else if (x >> 3) == 0b00111 { // subs rd, #imm
                 self.thumbLUT[x] = Self::Thumb_handleSubImm;
+            }
+            
+            else if (x >> 3) == 0b01100 { // str rd, [rb, #imm]
+                self.thumbLUT[x] = Self::Thumb_handleStoreImmOffset;
             }
 
             else if (x >> 3) == 0b11000 { // stmia rb! {rlist}
                 self.thumbLUT[x] = Self::Thumb_handleSTMIA;
+            }
+
+            else if (x >> 3) == 0b11001 { // ldmia rb! {rlist}
+                self.thumbLUT[x] = Self::Thumb_handleLDMIA;
+            }
+
+            else if (x >> 1) == 0b1011010 { // push (TODO: add separate handler for R=1 and R=0?)
+                self.thumbLUT[x] = Self::Thumb_handlePUSH;
+            }
+
+            else if (x >> 1) == 0b1011110 { // pop (TODO: add separate handler for R=1 and R=0?)
+                self.thumbLUT[x] = Self::Thumb_handlePOP;
             }
 
             else if (x >> 4) == 0b1101 { // Conditional branches

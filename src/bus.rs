@@ -39,11 +39,18 @@ impl Bus {
         let mut val: u32;
 
         match (address >> 24) & 0xF { // these 4 bits show us which memory range the addr belongs to
+            3 => {
+                val = self.mem.iWRAM[(address - 0x3000000) as usize] as u32;
+                val |= (self.mem.iWRAM[(address - 0x3000000 + 1) as usize] as u32) << 8;
+                val |= (self.mem.iWRAM[(address - 0x3000000 + 2) as usize] as u32) << 16;
+                val |= (self.mem.iWRAM[(address - 0x3000000 + 3) as usize] as u32) << 24;
+            },
+            
             8 | 9 => {
-                    val = self.mem.ROM[(address - 0x8000000) as usize] as u32;
-                    val |= (self.mem.ROM[(address - 0x8000000 + 1) as usize] as u32) << 8;
-                    val |= (self.mem.ROM[(address - 0x8000000 + 2) as usize] as u32) << 16;
-                    val |= (self.mem.ROM[(address - 0x8000000 + 3) as usize] as u32) << 24;
+                val = self.mem.ROM[(address - 0x8000000) as usize] as u32;
+                val |= (self.mem.ROM[(address - 0x8000000 + 1) as usize] as u32) << 8;
+                val |= (self.mem.ROM[(address - 0x8000000 + 2) as usize] as u32) << 16;
+                val |= (self.mem.ROM[(address - 0x8000000 + 3) as usize] as u32) << 24;
             },
 
             _=> panic!("32-bit read from unimplemented mem addr {:08X}\n", address)
@@ -61,19 +68,21 @@ impl Bus {
     }
 
     pub fn write32 (&mut self, address: u32, val: u32) {
+        if address == 0x3000020 {println!("Memory breakpoint! Wrote {:08X} to {:08X}", val, address);}
+
         match (address >> 24) & 0xF { // these 4 bits show us which memory range the addr belongs to
             2 => {
                 self.mem.eWRAM[(address - 0x2000000) as usize] = (val & 0xFF) as u8;
-                self.mem.eWRAM[(address - 0x2000000 + 1) as usize] = ((val >> 8) & 0xFF) as u8;
-                self.mem.eWRAM[(address - 0x2000000 + 2) as usize] = ((val >> 16) & 0xFF) as u8;
-                self.mem.eWRAM[(address - 0x2000000 + 3) as usize] = ((val >> 24) & 0xFF) as u8;
+                self.mem.eWRAM[(address - 0x2000000 + 1) as usize] = (val >> 8) as u8;
+                self.mem.eWRAM[(address - 0x2000000 + 2) as usize] = (val >> 16) as u8;
+                self.mem.eWRAM[(address - 0x2000000 + 3) as usize] = (val >> 24) as u8;
             }
 
             3 => {
                 self.mem.iWRAM[(address - 0x3000000) as usize] = (val & 0xFF) as u8;
-                self.mem.iWRAM[(address - 0x3000000 + 1) as usize] = ((val >> 8) & 0xFF) as u8;
-                self.mem.iWRAM[(address - 0x3000000 + 2) as usize] = ((val >> 16) & 0xFF) as u8;
-                self.mem.iWRAM[(address - 0x3000000 + 3) as usize] = ((val >> 24) & 0xFF) as u8;
+                self.mem.iWRAM[(address - 0x3000000 + 1) as usize] = (val >> 8) as u8;
+                self.mem.iWRAM[(address - 0x3000000 + 2) as usize] = (val >> 16) as u8;
+                self.mem.iWRAM[(address - 0x3000000 + 3) as usize] = (val >> 24) as u8;
             }
 
             4 => self.writeIO32(address, val),
