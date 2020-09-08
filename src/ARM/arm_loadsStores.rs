@@ -27,7 +27,7 @@ impl CPU {
                 match isByte {
                     true => match isUser {
                         true => todo!("[ARM] Implement LDRBT"),
-                        false => todo!("[ARM] Implement LDRB\n")
+                        false => {self.logState(); todo!("[ARM] Implement LDRB\n")}
                     }
 
                     false => match isUser {

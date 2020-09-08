@@ -1,7 +1,5 @@
 use crate::bus::Bus;
 use crate::cpu::CPU;
-use crate::cpu::CPUModes;
-use crate::ARM::*;
 use crate::isBitSet;
 
 
@@ -26,8 +24,18 @@ impl CPU {
 
     pub fn populateARMLut (&mut self) {
         for x in 0..4096 {
+
+            if (x & 0xF) == 0b1001 {
+                if (x >> 6) == 0 {
+                    self.armLUT[x] = Self::ARM_handleMultiply;
+                }
+
+                else {
+                    self.armLUT[x] = Self::ARM_handleMultiplyLong;
+                }
+            }
             
-            if x == 0b000100100001 {
+            else if x == 0b000100100001 {
                 self.armLUT[x] = Self::ARM_handleBranchExchange
             }
 

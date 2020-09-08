@@ -1,6 +1,5 @@
 use crate::bus::Bus;
 use crate::cpu::CPU;
-use crate::barrelShifter;
 use crate::isBitSet;
 
 impl CPU {
