@@ -6,11 +6,7 @@ use crate::isBitSet;
 
 impl CPU {
     pub fn executeThumbInstruction (&mut self, bus: &mut Bus, instruction: u32) {
-        //if (self.gprs[15] == 0x80041E4+4) {
-        //    self.logState();
-        //    panic!("Breakpoint")
-        //}
-
+        //self.logState();
         let lutIndex = (instruction >> 8) as usize;
         self.thumbLUT[lutIndex](self, bus, instruction);
     }
@@ -116,7 +112,6 @@ impl CPU {
     }
 
     pub fn Thumb_handleUndefined (&mut self, bus: &mut Bus, instruction: u32) {
-        self.logState();
         let lutIndex = instruction >> 8;
         println!("LUT index: {:#08b}", lutIndex);
         println!("In binary: {:#016b}", instruction);

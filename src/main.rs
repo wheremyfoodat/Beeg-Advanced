@@ -15,32 +15,20 @@ pub mod helpers;
 //mod frontend;
 
 use gba::GBA;
-//use imgui::*;
+extern crate sfml;
+use sfml::graphics::*;
+use sfml::window::*; // TODO: Not import the entire thing
 
 fn main() {
-/*
-    let system = frontend::init("Beeg Advanced");
-    
-    system.main_loop(move |_, ui| {
-        Window::new(im_str!("Hello world"))
-            .size([300.0, 110.0], Condition::FirstUseEver)
-            .build(ui, || {
-                ui.text(im_str!("Hello world!"));
-                ui.text(im_str!("こんにちは世界！"));
-                ui.text(im_str!("This...is...imgui-rs!"));
-                ui.separator();
-                let mouse_pos = ui.io().mouse_pos;
-                ui.text(format!(
-                    "Mouse Position: ({:.1},{:.1})",
-                    mouse_pos[0], mouse_pos[1]
-                ));
-            });
-    });
-*/
     let mut gba = GBA::new("ROMs/ARMWrestlerFixed.gba".to_string());
     gba.init();
 
+    let mut window = RenderWindow::new(VideoMode::new(240, 160, 32),
+                            "Beeg Advanced",
+                            Style::CLOSE,
+                  &ContextSettings::default());
+
     loop {
-        gba.step();
+        gba.executeFrame(&mut window);
     }
 }

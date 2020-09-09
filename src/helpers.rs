@@ -26,3 +26,9 @@ pub fn readFileIntoVec(filename: &String) -> Vec<u8> {
 
     buffer
 }
+
+pub fn get8BitColor (colorToConvert: u8) -> u8 { // Extend a 5-bit color value into an 8-bit color value
+  let mut newColor = colorToConvert << 3; // Make the top 5 bits of the 8-bit color equal to the 5-bit color.
+  newColor |= (colorToConvert >> 2); // Make the bottom 3 bits of the 8-bit color equal to the top 3 bits of the 5-bit color
+  newColor
+}

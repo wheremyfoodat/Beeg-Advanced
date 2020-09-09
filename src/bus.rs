@@ -4,8 +4,8 @@ use crate::joypad::Joypad;
 
 pub struct Bus {
     mem: Memory,
-    ppu: PPU,
-    joypad: Joypad
+    pub ppu: PPU,
+    pub joypad: Joypad
 }
 
 impl Bus {
@@ -97,6 +97,7 @@ impl Bus {
             }
 
             6 => {
+                if val != 0 && address == 0x6000138 {panic!("Wrote {:04X} at {:08X}", val, address)}
                 self.ppu.VRAM[(address - 0x6000000) as usize] = (val & 0xFF) as u8;
                 self.ppu.VRAM[(address - 0x6000000 + 1) as usize] = (val >> 8) as u8;
             }
@@ -123,6 +124,13 @@ impl Bus {
                 self.mem.iWRAM[(address - 0x3000000 + 3) as usize] = (val >> 24) as u8;
             }
 
+            6 => {
+                self.ppu.VRAM[(address - 0x6000000) as usize] = (val & 0xFF) as u8;
+                self.ppu.VRAM[(address - 0x6000000 + 1) as usize] = (val >> 8) as u8;
+                self.ppu.VRAM[(address - 0x6000000 + 2) as usize] = (val >> 16) as u8;
+                self.ppu.VRAM[(address - 0x6000000 + 3) as usize] = (val >> 24) as u8;
+            }
+
             4 => self.writeIO32(address, val),
             _=> panic!("32-bit write to unimplemented mem addr {:08X}\n", address)
         }
@@ -131,7 +139,7 @@ impl Bus {
     pub fn readIO16 (&self, address: u32) -> u16 {
         match address {
             0x4000004 => self.ppu.dispstat.getRaw(),
-            0x4000130 => {println!("Polled joypad!\n"); self.joypad.keyinput.getRaw()},
+            0x4000130 => self.joypad.keyinput.getRaw(),
             _ => panic!("Unimplemented 16-bit read from MMIO address {:08X}", address)
         }
     }
@@ -142,5 +150,9 @@ impl Bus {
             0x4000208 => self.mem.ime = (val & 1) == 1,
             _ => todo!("Unimplemented 32-bit write to IO address {:08X}\n", address)
         }
+    }
+
+    pub fn isFrameReady (&self) -> bool {
+        self.ppu.isFrameReady
     }
 }

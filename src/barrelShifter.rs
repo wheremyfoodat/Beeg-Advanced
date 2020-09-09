@@ -38,12 +38,10 @@ impl CPU {
         res
     }
 
+    pub fn ASR (&mut self, number: u32, amount: u32, affectFlags: bool) -> u32 {
+        let res: u32;
 
-
-    pub fn ASR (&mut self, number: u32, mut amount: u32, affectFlags: bool) -> u32 {
-        let mut res = 0_u32;
-
-        if (amount < 32) {
+        if amount < 32 {
             res = ((number as i32) >> amount) as u32;
             if affectFlags && amount != 0 {
                 self.cpsr.setCarry((number >> (amount-1)) & 1);
@@ -52,11 +50,21 @@ impl CPU {
 
         else { // if shift amount > 31 => shift amount = 31, set carry to MSB (TOOD: confirm?)
             res = ((number as i32) >> 31) as u32;
-            if (affectFlags) {
+            if affectFlags {
                 self.cpsr.setCarry(res & 1);
             }
         }
 
+        res
+    }
+
+    pub fn RRX (&mut self, number: u32, affectFlags: bool) -> u32 {
+        let lsb = number & 1;
+        let res = (number >> 1) | (self.cpsr.getCarry() << 31);
+        if affectFlags {
+            self.cpsr.setCarry(lsb);
+        }
+        
         res
     }
 }

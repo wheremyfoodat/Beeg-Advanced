@@ -19,6 +19,7 @@ impl CPU {
 
         let rdIndex = (instruction >> 12) & 0xF;
         let s = isBitSet!(instruction, 20);
+        let oldCarry = self.cpsr.getCarry();
 
         let affectFlags = s && rdIndex != 15;
         let operand2 = self.ROR(imm, rot_imm * 2, affectFlags);
@@ -32,17 +33,17 @@ impl CPU {
             2   => self.ARM_SUB(rdIndex, operand1, operand2, affectFlags, bus),
             3   => todo!("[ARM] Implement RSB\n"),
             4   => self.ARM_ADD(rdIndex, operand1, operand2, affectFlags, bus),
-            5   => todo!("[ARM] Implement ADC\n"),
-            6   => todo!("[ARM] Implement SBC\n"),
-            7   => todo!("[ARM] Implement RSC\n"),
+            5   => self.ARM_ADC(rdIndex, operand1, operand2, affectFlags, oldCarry, bus),
+            6   => self.ARM_SBC(rdIndex, operand1, operand2, affectFlags, oldCarry, bus),
+            7   => self.ARM_SBC(rdIndex, operand2, operand1, affectFlags, oldCarry, bus),
             8   => self._TST(operand1, operand2),
             9   => self._TEQ(operand1, operand2),
             10  => self._CMP(operand1, operand2),
-            11  => todo!("[ARM] Implement CMN\n"),
+            11  => self._CMP(operand1, !operand2),
             12  => self.ARM_ORR(rdIndex, operand1, operand2, affectFlags, bus),
             13  => self.ARM_MOV(rdIndex, operand2, affectFlags, bus),
-            14  => todo!("[ARM] Implement BIC\n"),
-             _  => todo!("[ARM] Implement MVN\n")
+            14  => self.ARM_BIC(rdIndex, operand1, operand2, affectFlags, bus),
+             _  => self.ARM_MVN(rdIndex, operand2, affectFlags, bus)
         }
     }
 
@@ -51,6 +52,7 @@ impl CPU {
         let rdIndex = (instruction >> 12) & 0xF; 
         let rnIndex = (instruction >> 16) & 0xF;
         let rmIndex = instruction & 0xF;    
+        let oldCarry = self.cpsr.getCarry();
 
         let shift = (instruction >> 5) & 3;
         let shiftAmount = self.getGPR((instruction >> 8) & 0xF) & 0xFF;
@@ -74,17 +76,17 @@ impl CPU {
             2   => self.ARM_SUB(rdIndex, rn, rm, affectFlags, bus),
             3   => todo!("[ARM] Implement RSB\n"),
             4   => self.ARM_ADD(rdIndex, rn, rm, affectFlags, bus),
-            5   => todo!("[ARM] Implement ADC\n"),
-            6   => todo!("[ARM] Implement SBC\n"),
-            7   => todo!("[ARM] Implement RSC\n"),
+            5   => self.ARM_ADC(rdIndex, rn, rm, affectFlags, oldCarry, bus),
+            6   => self.ARM_SBC(rdIndex, rn, rm, affectFlags, oldCarry, bus),
+            7   => self.ARM_SBC(rdIndex, rm, rn, affectFlags, oldCarry, bus),
             8   => self._TST(rn, rm),
             9   => self._TEQ(rn, rm),
             10  => self._CMP(rn, rm),
-            11  => todo!("[ARM] Implement CMN\n"),
+            11  => self._CMP(rn, !rm),
             12  => self.ARM_ORR(rdIndex, rn, rm, affectFlags, bus),
             13  => self.ARM_MOV(rdIndex, rm, affectFlags, bus),
-            14  => todo!("[ARM] Implement BIC\n"),
-             _  => todo!("[ARM] Implement MVN\n")
+            14  => self.ARM_BIC(rdIndex, rn, rm, affectFlags, bus),
+             _  => self.ARM_MVN(rdIndex, rm, affectFlags, bus)
         }
     }
 
@@ -93,6 +95,7 @@ impl CPU {
         let rdIndex = (instruction >> 12) & 0xF; 
         let rnIndex = (instruction >> 16) & 0xF;
         let rmIndex = instruction & 0xF;    
+        let oldCarry = self.cpsr.getCarry();
 
         let shift = (instruction >> 5) & 3;
         let shiftImm = (instruction >> 7) & 31;
@@ -113,7 +116,7 @@ impl CPU {
                 }
 
                 else {
-                    todo!("[ARM] Implement RRX\n");
+                    rm = self.RRX(rm, affectFlags);
                 }
             }
         }
@@ -124,17 +127,17 @@ impl CPU {
             2   => self.ARM_SUB(rdIndex, rn, rm, affectFlags, bus),
             3   => todo!("[ARM] Implement RSB\n"),
             4   => self.ARM_ADD(rdIndex, rn, rm, affectFlags, bus),
-            5   => todo!("[ARM] Implement ADC\n"),
-            6   => todo!("[ARM] Implement SBC\n"),
-            7   => todo!("[ARM] Implement RSC\n"),
+            5   => self.ARM_ADC(rdIndex, rn, rm, affectFlags, oldCarry, bus),
+            6   => self.ARM_SBC(rdIndex, rn, rm, affectFlags, oldCarry, bus),
+            7   => self.ARM_SBC(rdIndex, rm, rn, affectFlags, oldCarry, bus),
             8   => self._TST(rn, rm),
             9   => self._TEQ(rn, rm),
             10  => self._CMP(rn, rm),
-            11  => todo!("[ARM] Implement CMN\n"),
+            11  => self._CMP(rn, !rm),
             12  => self.ARM_ORR(rdIndex, rn, rm, affectFlags, bus),
             13  => self.ARM_MOV(rdIndex, rm, affectFlags, bus),
-            14  => todo!("[ARM] Implement BIC\n"),
-             _  => todo!("[ARM] Implement MVN\n")
+            14  => self.ARM_BIC(rdIndex, rn, rm, affectFlags, bus),
+             _  => self.ARM_MVN(rdIndex, rm, affectFlags, bus)
         }
     }
     
@@ -145,8 +148,31 @@ impl CPU {
         }
     }
 
+    pub fn ARM_MVN(&mut self, rdIndex: u32, operand2: u32, affectFlags: bool, bus: &mut Bus) {
+        let res = !operand2;
+        self.setGPR(rdIndex, res, bus);
+        if affectFlags {
+            self.setSignAndZero(res);
+        }
+    }
+
     pub fn ARM_ADD(&mut self, rdIndex: u32, operand1: u32, operand2: u32, affectFlags: bool, bus: &mut Bus) {
         let res = self._ADD(operand1, operand2, affectFlags);
+        self.setGPR(rdIndex, res , bus);
+    }
+
+    pub fn ARM_BIC(&mut self, rdIndex: u32, operand1: u32, operand2: u32, affectFlags: bool, bus: &mut Bus) {
+        let res = self._BIC(operand1, operand2, affectFlags);
+        self.setGPR(rdIndex, res , bus);
+    }
+
+    pub fn ARM_ADC(&mut self, rdIndex: u32, operand1: u32, operand2: u32, affectFlags: bool, oldCarry: u32, bus: &mut Bus) {
+        let res = self._ADC(operand1, operand2, affectFlags, oldCarry);
+        self.setGPR(rdIndex, res , bus);
+    }
+
+    pub fn ARM_SBC(&mut self, rdIndex: u32, operand1: u32, operand2: u32, affectFlags: bool, oldCarry: u32, bus: &mut Bus) {
+        let res = self._SBC(operand1, operand2, affectFlags, oldCarry);
         self.setGPR(rdIndex, res , bus);
     }
 

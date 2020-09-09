@@ -66,7 +66,7 @@ impl CPU {
         }
 
         else {
-            todo!("[ARM] STRH/STRSH/STRSB/STRD with register offset")
+            address = self.ARM_getMiscLoadStoreAddr(LoadStoreAddrModes::RegisterOffset, instruction, bus);
         }
 
         if isLoad {
@@ -193,7 +193,7 @@ impl CPU {
             false => address -= offset
         }
 
-        if (shouldWriteBack) {
+        if shouldWriteBack {
             self.setGPR(rnIndex, address, bus);
         }
 
@@ -230,7 +230,7 @@ impl CPU {
     }
 
     fn ARM_STRB (&mut self, rdIndex: u32, address: u32, bus: &mut Bus) {
-        let mut source = self.getGPR(rdIndex) as u8;
+        let source = self.getGPR(rdIndex) as u8;
         bus.write8(address, source)
     }
 }

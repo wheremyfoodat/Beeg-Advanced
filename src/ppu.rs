@@ -1,4 +1,5 @@
 use crate::io::DISPSTAT;
+use crate::helpers::get8BitColor;
 
 const RENDERING_MODE_CYCLES: u32 = 960;
 const HBLANK_MODE_CYCLES: u32 = 272;
@@ -20,7 +21,9 @@ pub struct PPU {
     pub OAM:  [u8; 1024],
 
     mode: PPUModes,
-    cycles: u32
+    cycles: u32,
+    pub pixels: [u8; 240 * 160 * 4],
+    pub isFrameReady: bool
 }
 
 impl PPU {
@@ -34,8 +37,10 @@ impl PPU {
             VRAM: [0; 96 * 1024],
             OAM:  [0; 1024],
 
+            pixels: [0; 240 * 160 * 4],
             mode: PPUModes::Rendering,
-            cycles: 0
+            cycles: 0,
+            isFrameReady: false
         }
     }
 
@@ -102,11 +107,29 @@ impl PPU {
         }
     }
 
+    pub fn readPalette (&self, palNum: usize) -> u16 {
+        (self.paletteRAM[palNum * 2] as u16) | ((self.paletteRAM[palNum * 2 + 1] as u16) << 8)
+    }
+
     pub fn renderScanline(&mut self) {
 
     }
 
     pub fn renderBuffer(&mut self) {
+        let mut bufferIndex = 0;
 
+        for i in 0..240 * 160 {
+            let palIndex = self.VRAM[i] as usize;
+            let palEntry = self.readPalette(palIndex); // palettes store colors as BGR555
+            
+            self.pixels[bufferIndex] = get8BitColor((palEntry & 0x1F) as u8);          // red
+            self.pixels[bufferIndex+1] = get8BitColor(((palEntry >> 5) & 0x1F) as u8); // green
+            self.pixels[bufferIndex+2] = get8BitColor(((palEntry >> 10) & 0x1F) as u8); // blue
+            self.pixels[bufferIndex+3] = 255;
+
+            bufferIndex += 4
+        }
+
+        self.isFrameReady = true;
     }
 }
