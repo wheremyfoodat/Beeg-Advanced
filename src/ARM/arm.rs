@@ -5,24 +5,6 @@ use crate::isBitSet;
 
 impl CPU {
     pub fn executeARMInstruction (&mut self, bus: &mut Bus, instruction: u32) {
-        //if self.gprs[15] >= 0x80004F0 + 8 && self.gprs[15] <= 0x8000570 + 8{
-        //    self.logState();
-        //}
-/*
-        if self.gprs[15] == 0x8000550 + 8 {
-            self.logState();
-            self.DEBUG_VAR_REMOVE_LATER += 1;
-            println!("{}", self.DEBUG_VAR_REMOVE_LATER);
-            //if self.DEBUG_VAR_REMOVE_LATER == 2 {
-            //   panic!("AAA")
-            //}
-        }
-
-        if (self.gprs[15] == 0x800056C + 8) {
-            self.logState();
-            panic!("Text routine ended")
-        }
-*/
         if !self.isConditionTrue(instruction >> 28) {
             return
         }
@@ -65,8 +47,8 @@ impl CPU {
                 self.armLUT[x] = Self::ARM_handlePSRTransfer;
             }
 
-            else if x & 0xFBF == 0x109 { // Semaphore
-                self.armLUT[x] = Self::ARM_handleUndefined;
+            else if x & 0xFBF == 0x109 { // Swaps
+                self.armLUT[x] = Self::ARM_handleSwap;
             }
 
             else if (x >> 9) == 0b010 {

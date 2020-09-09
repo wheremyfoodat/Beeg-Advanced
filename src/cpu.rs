@@ -35,9 +35,7 @@ pub struct CPU {
 
     pub r13_banks: [u32; 6],
     pub r14_banks: [u32; 6],
-    pub spsr_banks: [PSR; 5],
-
-    pub DEBUG_VAR_REMOVE_LATER: u32
+    pub spsr_banks: [PSR; 5]
 }
 
 pub enum CPUStates {
@@ -73,8 +71,7 @@ impl CPU {
         
             r13_banks: [0; 6],
             r14_banks: [0; 6],
-            spsr_banks: [PSR(0), PSR(0), PSR(0), PSR(0), PSR(0)],
-            DEBUG_VAR_REMOVE_LATER: 0
+            spsr_banks: [PSR(0), PSR(0), PSR(0), PSR(0), PSR(0)]
         }
     }
 
@@ -162,8 +159,9 @@ impl CPU {
     }
 
     pub fn setCPSR(&mut self, val: u32) {
-        self.cpsr.setRaw(val);
         self.changeMode(val & 0x1F);
+        self.cpsr.setRaw(val);
+        println!("Switched to {:02X} mode!", val & 0x1F);
     }
 
     pub fn cpuModeToArrayIndex(mode: u32) -> usize {
@@ -210,10 +208,10 @@ impl CPU {
             }
 
             _ => { 
-                let index = CPU::cpuModeToArrayIndex(currentMode);
-                self.r13_banks[index] = self.gprs[13];
-                self.r14_banks[index] = self.gprs[14];
-                self.spsr_banks[index-1].setRaw(self.spsr.getRaw());
+                let currentModeindex = CPU::cpuModeToArrayIndex(currentMode);
+                self.r13_banks[currentModeindex] = self.gprs[13];
+                self.r14_banks[currentModeindex] = self.gprs[14];
+                self.spsr_banks[currentModeindex-1].setRaw(self.spsr.getRaw());
             }
         }
 
@@ -242,10 +240,10 @@ impl CPU {
             }
 
             _ => { // rest of the modes
-                let index = CPU::cpuModeToArrayIndex(currentMode);
-                self.gprs[13] = self.r13_banks[index];
-                self.gprs[14] = self.r14_banks[index];
-                self.spsr.setRaw(self.spsr_banks[index-1].getRaw())
+                let newModeIndex = CPU::cpuModeToArrayIndex(newMode);
+                self.gprs[13] = self.r13_banks[newModeIndex];
+                self.gprs[14] = self.r14_banks[newModeIndex];
+                self.spsr.setRaw(self.spsr_banks[newModeIndex-1].getRaw())
             }
         }
     }
@@ -398,5 +396,14 @@ impl CPU {
 
     pub fn _TST(&mut self, operand1: u32, operand2: u32) {
         self.setSignAndZero(operand1 & operand2)
+    }
+
+    pub fn _MUL(&mut self, operand1: u32, operand2: u32, affectFlags: bool) -> u32 {
+        let res = operand1.wrapping_mul(operand2);
+        if affectFlags {
+            self.setSignAndZero(res);
+        }
+
+        res
     }
 }

@@ -1,6 +1,5 @@
 use crate::bus::Bus;
 use crate::cpu::CPU;
-use crate::barrelShifter;
 use crate::isBitSet;
 
 impl CPU {
@@ -40,8 +39,15 @@ impl CPU {
             }
         }
 
-        else {
-            todo!("Implement MRS\n");
+        else { // MRS
+            let rdIndex = (instruction >> 12) & 0xF;
+            if isBitSet!(instruction, 22) {
+                self.setGPR(rdIndex, self.spsr.getRaw(), bus);
+            }
+
+            else {
+                self.setGPR(rdIndex, self.cpsr.getRaw(), bus);
+            }
         }
     }
 }

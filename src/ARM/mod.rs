@@ -1,4 +1,5 @@
 mod arm;
+mod arm_swaps;
 mod arm_branches;
 mod arm_loadsStores;
 mod arm_PSRTransfers;
