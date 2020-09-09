@@ -25,7 +25,7 @@ fn main() {
 
     let mut window = RenderWindow::new(VideoMode::new(240, 160, 32),
                             "Beeg Advanced",
-                            Style::CLOSE,
+                            Style::RESIZE | Style::CLOSE,
                   &ContextSettings::default());
 
     loop {

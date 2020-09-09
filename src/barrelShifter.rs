@@ -4,6 +4,7 @@ use crate::isBitSet;
 
 impl CPU {
     pub fn ROR (&mut self, number: u32, mut amount: u32, affectFlags: bool) -> u32 {
+        debug_assert!(amount < 32);
         amount &= 31;
         let res = number.rotate_right(amount); 
 
@@ -15,7 +16,6 @@ impl CPU {
     }
 
     pub fn LSL (&mut self, number: u32, mut amount: u32, affectFlags: bool) -> u32 {
-        //println!("LSL executed! In case of a bug, revisit this!\n");
         amount &= 31;
         let res = number << amount;
 
@@ -27,7 +27,7 @@ impl CPU {
     }
 
     pub fn LSR (&mut self, number: u32, mut amount: u32, affectFlags: bool) -> u32 {
-        //println!("LSR executed! In case of a bug, revisit this!\n");
+        debug_assert!(amount < 32 && amount != 0);
         amount &= 31;
         let res = number >> amount;
 
@@ -39,6 +39,7 @@ impl CPU {
     }
 
     pub fn ASR (&mut self, number: u32, amount: u32, affectFlags: bool) -> u32 {
+        debug_assert!(amount < 32 && amount != 0);
         let res: u32;
 
         if amount < 32 {

@@ -97,7 +97,7 @@ impl Bus {
             }
 
             6 => {
-                if val != 0 && address == 0x6000138 {panic!("Wrote {:04X} at {:08X}", val, address)}
+               // if val != 0 && address == 0x6000138 {panic!("Wrote {:04X} at {:08X}", val, address)}
                 self.ppu.VRAM[(address - 0x6000000) as usize] = (val & 0xFF) as u8;
                 self.ppu.VRAM[(address - 0x6000000 + 1) as usize] = (val >> 8) as u8;
             }

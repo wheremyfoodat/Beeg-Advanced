@@ -10,8 +10,8 @@ impl CPU {
         let rmIndex = instruction & 0xF;
 
         let rm = self.getGPR(rmIndex);
-        let rn = self.getGPR(rmIndex);
-        let rs = self.getGPR(rmIndex);
+        let rn = self.getGPR(rnIndex);
+        let rs = self.getGPR(rsIndex);
 
         let updateFlags = isBitSet!(instruction, 20);
         debug_assert!(!(updateFlags && rdIndex == 15));
