@@ -48,10 +48,6 @@ impl CPU {
             else if (x >> 3) == 0b00111 { // subs rd, #imm
                 self.thumbLUT[x] = Self::Thumb_handleSubImm;
             }
-            
-            else if (x >> 3) == 0b01100 { // str rd, [rb, #imm]
-                self.thumbLUT[x] = Self::Thumb_handleStoreImmOffset;
-            }
 
             else if (x >> 3) == 0b11000 { // stmia rb! {rlist}
                 self.thumbLUT[x] = Self::Thumb_handleSTMIA;
@@ -69,9 +65,8 @@ impl CPU {
                 self.thumbLUT[x] = Self::Thumb_handlePOP;
             }
 
-            else if (x >> 4) == 0b1101 { // Conditional branches
-                self.thumbLUT[x] = Self::Thumb_handleConditionalBranch;
-            }
+            else if (x >> 4) == 0b1101 { self.thumbLUT[x] = Self::Thumb_handleConditionalBranch; }
+            else if (x >> 3) == 0b11100 { self.thumbLUT[x] = Self::Thumb_handleUnconditionalBranch }
 
             else if (x >> 3) == 0b01001 { // PC-relative load
                 self.thumbLUT[x] = Self::Thumb_handlePCRelativeLoad;
@@ -101,13 +96,17 @@ impl CPU {
                 self.thumbLUT[x] = Self::Thumb_handleSubOffset;
             }
 
-            else if (x >> 2) == 0b010000 { // ALU operations
-                self.thumbLUT[x] = Self::Thumb_handleALU;
-            }
+            else if (x >> 2) == 0b010000 { self.thumbLUT[x] = Self::Thumb_handleALU; }
 
-            else {
-                self.thumbLUT[x] = Self::Thumb_handleUndefined;
-            }
+            else if (x >> 3) == 0b10000 { self.thumbLUT[x] = Self::Thumb_handleStoreHalfword; }
+            else if (x >> 3) == 0b10001 { self.thumbLUT[x] = Self::Thumb_handleLoadHalfword; }
+            else if (x >> 3) == 0b01100 { self.thumbLUT[x] = Self::Thumb_handleStoreWordWithImm }
+            else if (x >> 3) == 0b01101 { self.thumbLUT[x] = Self::Thumb_handleLoadWordWithImm }
+            else if (x >> 3) == 0b01110 { self.thumbLUT[x] = Self::Thumb_handleStoreByteWithImm }
+            else if (x >> 3) == 0b01111 { self.thumbLUT[x] = Self::Thumb_handleLoadByteWithImm }
+            else if (x >> 4) == 0b1010 { self.thumbLUT[x] = Self::Thumb_handleLoadAddress }
+
+            else { self.thumbLUT[x] = Self::Thumb_handleUndefined; }
         }
     }
 

@@ -5,7 +5,7 @@ impl CPU {
     pub fn Thumb_handleConditionalBranch (&mut self, bus: &mut Bus, instruction: u32) {
         let mut offset = (instruction & 0xFF) << 1;
         if (offset >> 8) != 0 {
-            offset |= 0xFFFFFF00;
+            offset |= 0xFFFFFF00; // sign extend
         }
 
         let condition = (instruction >> 8) & 0xF;
@@ -14,6 +14,16 @@ impl CPU {
             let pc = self.gprs[15];
             self.setGPR(15, pc.wrapping_add(offset), bus);
         }
+    }
+
+    pub fn Thumb_handleUnconditionalBranch (&mut self, bus: &mut Bus, instruction: u32) {
+        let mut offset = (instruction & 0x7FF) << 1;
+        if (offset >> 11) != 0 {
+            offset |= 0xFFFFF000;
+        }
+
+        let pc = self.gprs[15];
+        self.setGPR(15, pc.wrapping_add(offset), bus);
     }
 
     pub fn Thumb_handleBL1 (&mut self, bus: &mut Bus, instruction: u32) {

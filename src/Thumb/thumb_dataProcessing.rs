@@ -76,30 +76,33 @@ impl CPU {
     }
 
     pub fn Thumb_handleALU (&mut self, bus: &mut Bus, instruction: u32) {
-        let rdIndex = instruction & 0x7;
+        let rdIndex = (instruction & 0x7) as usize;
         let rsIndex = (instruction >> 3) & 0x7;
         let opcode = (instruction >> 6) & 0xF;
 
         let rs = self.gprs[rsIndex as usize];
-        let rd = self.gprs[rdIndex as usize];
+        let rd = self.gprs[rdIndex];
 
         match opcode {
-            0 => todo!("[THUMB] Implement AND!\n"),
-            1 => todo!("[THUMB] Implement EOR!\n"),
-            2 => todo!("[THUMB] Implement LSL!\n"),
-            3 => todo!("[THUMB] Implement LSR!\n"),
-            4 => todo!("[THUMB] Implement ASR!\n"),
-            5 => todo!("[THUMB] Implement ADC!\n"),
-            6 => todo!("[THUMB] Implement SBC!\n"),
-            7 => todo!("[THUMB] Implement ROR!\n"),
-            8 => todo!("[THUMB] Implement TST!\n"),
-            9 => todo!("[THUMB] Implement NEG!\n"),
+            0 => self.gprs[rdIndex] = self._AND(rd, rs, true),
+            1 => self.gprs[rdIndex] = self._EOR(rd, rs, true),
+            2 => { self.gprs[rdIndex] = self.LSL(rd, rs, true); self.setSignAndZero(self.gprs[rdIndex]) },
+            3 => { self.gprs[rdIndex] = self.LSR(rd, rs, true); self.setSignAndZero(self.gprs[rdIndex]) },
+            4 => { self.gprs[rdIndex] = self.ASR(rd, rs, true); self.setSignAndZero(self.gprs[rdIndex]) },
+            5 => self.gprs[rdIndex] = self._ADC(rd, rs, true, self.cpsr.getCarry()),
+            6 => self.gprs[rdIndex] = self._SBC(rd, rs, true, self.cpsr.getCarry()),
+            7 => { self.gprs[rdIndex] = self.ROR(rd, rs, true); self.setSignAndZero(self.gprs[rdIndex]) },
+            8 => self._TST(rd, rs),
+            9 => self.gprs[rdIndex] = self._SUB(rs, rd, true),
             10 => self._CMP(rd, rs),
-            11 => todo!("[THUMB] Implement CMN!\n"),
-            12 => todo!("[THUMB] Implement ORR!\n"),
-            13 => todo!("[THUMB] Implement MUL!\n"),
-            14 => self.gprs[rdIndex as usize] = self._BIC(rd, rs, true),
-            _  => todo!("[THUMB] Implement MVN!\n")
+            11 => self._CMP(rd, !rs),
+            12 => self.gprs[rdIndex] = self._ORR(rd, rs, true),
+            13 => self.gprs[rdIndex] = self._MUL(rd, rs, true),
+            14 => self.gprs[rdIndex] = self._BIC(rd, rs, true),
+            _  => { // MVN
+                self.gprs[rdIndex] = !rs;
+                self.setSignAndZero(!rs);
+            }
         }
     }
 
@@ -118,10 +121,13 @@ impl CPU {
         let rd = self.gprs[rdIndex as usize];
 
         match op {
-            0 => todo!("[THUMB] Implement high reg ADD"),
-            1 => todo!("[THUMB] Implement high reg CMP"),
-            2 => self.setGPR(rdIndex, self.gprs[rsIndex as usize], bus),
-            _ => self.Thumb_handleBX(rs, bus)
+            0 => { // ADD
+                let res = self._ADD(rd, rs, false);
+                self.setGPR(rdIndex, res, bus)
+            },
+            1 => self._CMP(rd, rs), // CMP
+            2 => self.setGPR(rdIndex, self.gprs[rsIndex as usize], bus), // MOV
+            _ => self.Thumb_handleBX(rs, bus) // BX
         }
     }
 }

@@ -24,82 +24,67 @@ impl CPU {
         self.gprs[rdIndex as usize] = val;
     }
 
-    pub fn Thumb_handleSTMIA (&mut self, bus: &mut Bus, instruction: u32) {
-        let rbIndex = (instruction >> 8) & 7;
-        let mut sp = self.gprs[rbIndex as usize];
+    pub fn Thumb_handleStoreHalfword (&mut self, bus: &mut Bus, instruction: u32) {
+        let rdIndex = instruction & 7;
+        let rb = self.getGPR((instruction >> 3) & 7);
+        let offset = ((instruction >> 6) & 0x1F) << 1;
 
-        debug_assert!((instruction & 0xFF) != 0);
-        debug_assert!(!isBitSet!(instruction, rbIndex));
-
-        for i in 0..8 {
-            if isBitSet!(instruction, i) {
-                bus.write32(sp, self.gprs[i as usize]);
-                sp += 4;
-            }
-        }
-
-        self.gprs[rbIndex as usize] = sp;
+        bus.write16(rb + offset, self.gprs[rdIndex as usize] as u16);
     }
 
-    pub fn Thumb_handleLDMIA (&mut self, bus: &mut Bus, instruction: u32) {
-        let rbIndex = (instruction >> 8) & 7;
-        let mut sp = self.gprs[rbIndex as usize];
+    pub fn Thumb_handleLoadHalfword (&mut self, bus: &mut Bus, instruction: u32) {
+        let rdIndex = instruction & 7;
+        let rb = self.getGPR((instruction >> 3) & 7);
+        let offset = ((instruction >> 6) & 0x1F) << 1;
 
-        debug_assert!((instruction & 0xFF) != 0);
-        debug_assert!(!isBitSet!(instruction, rbIndex));
-
-        for i in 0..8 {
-            if isBitSet!(instruction, i) {
-                self.gprs[i as usize] = bus.read32(sp);
-                sp += 4;
-            }
-        }
-
-        self.gprs[rbIndex as usize] = sp;
+        self.gprs[rdIndex as usize] = bus.read16(rb + offset) as u32;
     }
 
-    pub fn Thumb_handleStoreImmOffset (&mut self, bus: &mut Bus, instruction: u32) {
-        let rdIndex = instruction & 0x7;
-        let rbIndex = (instruction >> 3) & 7;
+    pub fn Thumb_handleLoadWordWithImm (&mut self, bus: &mut Bus, instruction: u32) {
+        let rdIndex = instruction & 7;
+        let rb = self.getGPR((instruction >> 3) & 7);
         let offset = ((instruction >> 6) & 0x1F) << 2;
 
-        let rb = self.gprs[rbIndex as usize];
-        let rd = self.gprs[rdIndex as usize];
-
-        bus.write32(rb + offset, rd);
+        self.gprs[rdIndex as usize] = bus.read32(rb + offset);
     }
 
-    pub fn Thumb_handlePUSH (&mut self, bus: &mut Bus, instruction: u32) {
-        let storeLR = isBitSet!(instruction, 8);
-        debug_assert!((instruction & 0xFF) != 0);
+    pub fn Thumb_handleStoreWordWithImm (&mut self, bus: &mut Bus, instruction: u32) {
+        let rdIndex = instruction & 7;
+        let rb = self.getGPR((instruction >> 3) & 7);
+        let offset = ((instruction >> 6) & 0x1F) << 2;
 
-        if storeLR {
-            self.gprs[13] -= 4;
-            bus.write32(self.gprs[13], self.gprs[14]);
-        }
-
-        for i in (0..8).rev() {
-            if isBitSet!(instruction, i) {
-                self.gprs[13] -= 4;
-                bus.write32(self.gprs[13], self.gprs[i]);
-            }
-        }
+        bus.write32(rb + offset, self.gprs[rdIndex as usize]);
     }
 
-    pub fn Thumb_handlePOP (&mut self, bus: &mut Bus, instruction: u32) {
-        let loadPC = isBitSet!(instruction, 8);
-        debug_assert!((instruction & 0xFF) != 0);
+    pub fn Thumb_handleLoadByteWithImm (&mut self, bus: &mut Bus, instruction: u32) {
+        let rdIndex = instruction & 7;
+        let rb = self.getGPR((instruction >> 3) & 7);
+        let offset = (instruction >> 6) & 0x1F;
 
-        for i in 0..8 {
-            if isBitSet!(instruction, i) {
-                self.gprs[i] = bus.read32(self.gprs[13]);
-                self.gprs[13] += 4;
-            }
+        self.gprs[rdIndex as usize] = bus.read8(rb + offset) as u32;
+    }
+
+    pub fn Thumb_handleStoreByteWithImm (&mut self, bus: &mut Bus, instruction: u32) {
+        let rdIndex = instruction & 7;
+        let rb = self.getGPR((instruction >> 3) & 7);
+        let offset = (instruction >> 6) & 0x1F;
+
+        bus.write8(rb + offset, self.gprs[rdIndex as usize] as u8);
+    }
+
+    pub fn Thumb_handleLoadAddress (&mut self, bus: &mut Bus, instruction: u32) { // TODO: split into 2 handlers?
+        let rdIndex = (instruction >> 8) & 0x7;
+        let offset = (instruction & 0xFF) << 2;
+        let mut address = offset;
+
+        if isBitSet!(instruction, 11) {
+            address += self.gprs[13]
         }
 
-        if loadPC {
-            self.setGPR(15, bus.read32(self.gprs[13]), bus);
-            self.gprs[13] += 4;
+        else {
+            address += self.gprs[15]
         }
+
+        self.gprs[rdIndex as usize] = address;
     }
 }
