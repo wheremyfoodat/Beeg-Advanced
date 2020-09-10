@@ -93,7 +93,7 @@ impl CPU {
             6 => self.gprs[rdIndex] = self._SBC(rd, rs, true, self.cpsr.getCarry()),
             7 => { self.gprs[rdIndex] = self.ROR(rd, rs, true); self.setSignAndZero(self.gprs[rdIndex]) },
             8 => self._TST(rd, rs),
-            9 => self.gprs[rdIndex] = self._SUB(rs, rd, true),
+            9 => self.gprs[rdIndex] = self._SUB(0, rs, true),
             10 => self._CMP(rd, rs),
             11 => self._CMP(rd, !rs),
             12 => self.gprs[rdIndex] = self._ORR(rd, rs, true),

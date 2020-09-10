@@ -1,20 +1,34 @@
 use crate::bus::Bus;
 use crate::cpu::CPU;
 use crate::isBitSet;
+// TODO: implement remaining edge cases
 
 impl CPU {
     pub fn ARM_handleLDM (&mut self, bus: &mut Bus, instruction: u32) {
         let rnIndex = (instruction >> 16) & 0xF;
-        let writeback = isBitSet!(instruction, 21);
+        let mut writeback = isBitSet!(instruction, 21);
         let switchToUser = isBitSet!(instruction, 22);
         let increment = isBitSet!(instruction, 23);
         let changeSPBeforeTransfer = isBitSet!(instruction, 24);
+        let currentMode = self.cpsr.getMode();
+
+        if switchToUser {
+            if isBitSet!(instruction, 15) {
+                self.setCPSR(self.spsr.getRaw());   
+            }
+
+            else {
+                self.changeMode(0x10);
+            }
+        }
 
         let mut sp = self.getGPR(rnIndex);
 
         debug_assert!((instruction & 0xFFFF) != 0);
-        debug_assert!(!switchToUser);
-        debug_assert!(!isBitSet!(instruction, rnIndex));
+        
+        if isBitSet!(instruction, rnIndex) {
+            writeback = false;
+        }
         
         if increment {
             for i in 0..16 {
@@ -38,6 +52,10 @@ impl CPU {
 
         if writeback {
             self.setGPR(rnIndex, sp, bus);
+        }
+
+        if switchToUser && !isBitSet!(instruction, 15) {
+            self.changeMode(currentMode);
         }
     }
 
@@ -47,12 +65,16 @@ impl CPU {
         let switchToUser = isBitSet!(instruction, 22);
         let increment = isBitSet!(instruction, 23);
         let changeSPBeforeTransfer = isBitSet!(instruction, 24);
-
+        let currentMode = self.cpsr.getMode();
+        
+        if switchToUser {
+            self.changeMode(0x10);
+        }
+        
         let mut sp = self.getGPR(rnIndex);
 
         debug_assert!((instruction & 0xFFFF) != 0);
-        debug_assert!(!switchToUser);
-        debug_assert!(!isBitSet!(instruction, rnIndex));
+        //debug_assert!(!isBitSet!(instruction, rnIndex));
         
         if increment {
             for i in 0..16 {
@@ -76,6 +98,10 @@ impl CPU {
 
         if writeback {
             self.setGPR(rnIndex, sp, bus);
+        }
+
+        if switchToUser {
+            self.changeMode(currentMode);
         }
     }
 }

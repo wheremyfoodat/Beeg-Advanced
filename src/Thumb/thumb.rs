@@ -98,13 +98,21 @@ impl CPU {
 
             else if (x >> 2) == 0b010000 { self.thumbLUT[x] = Self::Thumb_handleALU; }
 
-            else if (x >> 3) == 0b10000 { self.thumbLUT[x] = Self::Thumb_handleStoreHalfword; }
-            else if (x >> 3) == 0b10001 { self.thumbLUT[x] = Self::Thumb_handleLoadHalfword; }
+            else if (x >> 3) == 0b10000 { self.thumbLUT[x] = Self::Thumb_handleStoreHalfwordWithImm; }
+            else if (x >> 3) == 0b10001 { self.thumbLUT[x] = Self::Thumb_handleLoadHalfwordWithImm; }
             else if (x >> 3) == 0b01100 { self.thumbLUT[x] = Self::Thumb_handleStoreWordWithImm }
             else if (x >> 3) == 0b01101 { self.thumbLUT[x] = Self::Thumb_handleLoadWordWithImm }
             else if (x >> 3) == 0b01110 { self.thumbLUT[x] = Self::Thumb_handleStoreByteWithImm }
             else if (x >> 3) == 0b01111 { self.thumbLUT[x] = Self::Thumb_handleLoadByteWithImm }
             else if (x >> 4) == 0b1010 { self.thumbLUT[x] = Self::Thumb_handleLoadAddress }
+            else if (x >> 1) == 0b0101000 { self.thumbLUT[x] = Self::Thumb_handleStoreWordWithReg }
+            else if (x >> 1) == 0b0101010 { self.thumbLUT[x] = Self::Thumb_handleStoreByteWithReg }
+            else if (x >> 1) == 0b0101100 { self.thumbLUT[x] = Self::Thumb_handleLoadWordWithReg }
+            else if (x >> 1) == 0b0101110 { self.thumbLUT[x] = Self::Thumb_handleLoadByteWithReg }
+            else if (x >> 1) == 0b0101001 { self.thumbLUT[x] = Self::Thumb_handleStoreHalfwordWithReg }
+            else if (x >> 1) == 0b0101101 { self.thumbLUT[x] = Self::Thumb_handleLoadHalfwordWithReg }
+            else if (x >> 1) == 0b0101011 { self.thumbLUT[x] = Self::Thumb_handleLoadSignExtendedByte }
+            else if (x >> 1) == 0b0101111 { self.thumbLUT[x] = Self::Thumb_handleLoadSignExtendedHalfword }
 
             else { self.thumbLUT[x] = Self::Thumb_handleUndefined; }
         }

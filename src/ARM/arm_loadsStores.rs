@@ -22,6 +22,20 @@ impl CPU {
         let address = self.ARM_getLoadStoreAddr(LoadStoreAddrModes::ImmediateOffset, 
                                                 instruction, bus);
 
+        self.ARM_matchLoadStoreType(isByte, isLoad, isUser, rdIndex, address, bus)
+    }
+
+    pub fn ARM_handleLoadStoreWithShift (&mut self, bus: &mut Bus, instruction: u32) {
+        let isByte = isBitSet!(instruction, 22);
+        let isLoad = isBitSet!(instruction, 20);
+        let isUser = isBitSet!(instruction, 21) && !isBitSet!(instruction, 24);
+        let rdIndex = (instruction >> 12) & 0xF;
+        let address = self.ARM_getLoadStoreAddr(LoadStoreAddrModes::RegisterOffset, 
+                                                instruction, bus);
+        self.ARM_matchLoadStoreType(isByte, isLoad, isUser, rdIndex, address, bus)
+    }
+
+    pub fn ARM_matchLoadStoreType (&mut self, isByte: bool, isLoad: bool, isUser: bool, rdIndex: u32, address: u32, bus: &mut Bus) {
         match isLoad {
             true => {
                 match isByte {
@@ -53,6 +67,7 @@ impl CPU {
         }
     }
 
+    
     pub fn ARM_handleMiscLoadStores (&mut self, bus: &mut Bus, instruction: u32) {
         let mut address = 0_u32;
         let isLoad = isBitSet!(instruction, 20);
@@ -135,12 +150,26 @@ impl CPU {
 
         match addrMode {
             LoadStoreAddrModes::ImmediateOffset => offset = instruction & 0xFFF,
-            _ => todo!("[ARM] Implement ARM load store addr modes\n")
+            _ => {
+                let rm = self.gprs[(instruction & 0xF) as usize];
+                let shift = (instruction >> 5) & 3;
+                let shift_amount = (instruction >> 7) & 31;
+
+                match shift {
+                    0 => offset = self.LSL(rm, shift_amount, false),
+                    1 => offset = self.LSR(rm, shift_amount, false),
+                    2 => offset = self.ASR(rm, shift_amount, false),
+                    _ => {
+                        if shift_amount == 0 { offset = self.RRX(rm, false) }
+                        else { offset = self.ROR(rm, shift_amount, false) }
+                    }
+                }
+            }
         }
 
         match addToBase {
-            true => address += offset,
-            false => address -= offset
+            true => address = address.wrapping_add(offset),
+            false => address = address.wrapping_sub(offset)
         }
 
         if shouldWriteBack {

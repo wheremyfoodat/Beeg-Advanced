@@ -178,6 +178,7 @@ impl CPU {
 
     pub fn changeMode (&mut self, newMode: u32) {
         let currentMode = self.cpsr.getMode();
+        self.cpsr.setMode(newMode);
         
         if currentMode == newMode {
             return;

@@ -56,6 +56,11 @@ impl Bus {
         debug_assert!((address & 3) == 0);
         let mut val: u32;
 
+        if address > 0xFFFFFFF { 
+            println!("Read from invalid memory");
+            return 0xFFFFFFFF
+        }
+
         match (address >> 24) & 0xF { // these 4 bits show us which memory range the addr belongs to
             3 => {
                 val = self.mem.iWRAM[(address - 0x3000000) as usize] as u32;
@@ -85,6 +90,8 @@ impl Bus {
     }
 
     pub fn write16 (&mut self, address: u32, val: u16) {
+        debug_assert!((address & 1) == 0); 
+
         match (address >> 24) & 0xF { // these 4 bits show us which memory range the addr belongs to
             3 => {
                 self.mem.iWRAM[(address - 0x3000000) as usize] = (val & 0xFF) as u8;
@@ -109,6 +116,7 @@ impl Bus {
     }
 
     pub fn write32 (&mut self, address: u32, val: u32) {
+        debug_assert!((address & 3) == 0); 
         match (address >> 24) & 0xF { // these 4 bits show us which memory range the addr belongs to
             2 => {
                 self.mem.eWRAM[(address - 0x2000000) as usize] = (val & 0xFF) as u8;
@@ -132,6 +140,7 @@ impl Bus {
             }
 
             4 => self.writeIO32(address, val),
+            8 => println!("32-bit write to ROM at {:08X}", address),
             _=> panic!("32-bit write to unimplemented mem addr {:08X}\n", address)
         }
     }

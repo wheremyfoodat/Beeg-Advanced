@@ -56,13 +56,7 @@ impl CPU {
             }
 
             else if (x >> 9) == 0b011 {
-                if (x & 0xF) == 0 { // Load/Store Register
-                    self.armLUT[x] = Self::ARM_handleUndefined;
-                }
-
-                else { // Load Store Scaled Register
-                    self.armLUT[x] = Self::ARM_handleUndefined;
-                }
+                self.armLUT[x] = Self::ARM_handleLoadStoreWithShift;
             }
 
             else if (x & 0b1001) == 0b1001 && (x >> 9) == 0 { // todo: separate handler for each type? (speed?)
