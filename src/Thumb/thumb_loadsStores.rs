@@ -171,7 +171,7 @@ impl CPU {
         }
 
         else {
-            address += self.gprs[15]
+            address += (self.gprs[15] & !3)
         }
 
         self.gprs[rdIndex as usize] = address;

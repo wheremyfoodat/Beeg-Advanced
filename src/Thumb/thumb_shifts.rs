@@ -15,7 +15,10 @@ impl CPU {
     }
     
     pub fn Thumb_handleLSR (&mut self, bus: &mut Bus, instruction: u32) {
-        let offset = (instruction >> 6) & 0x1F;
+        let mut offset = (instruction >> 6) & 0x1F;
+        if offset == 0 {
+            offset = 32;
+        }
         let rsIndex = (instruction >> 3) & 0x7;
         let rdIndex = instruction & 0x7;
 
@@ -26,7 +29,10 @@ impl CPU {
     }
 
     pub fn Thumb_handleASR (&mut self, bus: &mut Bus, instruction: u32) {
-        let offset = (instruction >> 6) & 0x1F;
+        let mut offset = (instruction >> 6) & 0x1F;
+        if offset == 0 {
+            offset = 32;
+        }
         let rsIndex = (instruction >> 3) & 0x7;
         let rdIndex = instruction & 0x7;
 

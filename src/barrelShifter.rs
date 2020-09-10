@@ -4,8 +4,6 @@ use crate::isBitSet;
 
 impl CPU {
     pub fn ROR (&mut self, number: u32, mut amount: u32, affectFlags: bool) -> u32 {
-        //debug_assert!(amount < 32);
-        amount &= 31;
         let res = number.rotate_right(amount); 
 
         if affectFlags && amount != 0 {
@@ -15,24 +13,53 @@ impl CPU {
         res
     }
 
-    pub fn LSL (&mut self, number: u32, mut amount: u32, affectFlags: bool) -> u32 {
-        amount &= 31;
-        let res = number << amount;
+    pub fn LSL (&mut self, number: u32, amount: u32, affectFlags: bool) -> u32 {
+        let res: u32;
 
-        if affectFlags && amount != 0 {
-            self.cpsr.setCarry(isBitSet!(number, 32-amount) as u32);
+        if amount < 32 {
+            res = number << amount;
+
+            if affectFlags && amount != 0 {
+                self.cpsr.setCarry(isBitSet!(number, 32-amount) as u32);
+            }
+        }
+
+        else {
+            res = 0;
+            if affectFlags {
+                if amount == 32 {
+                    self.cpsr.setCarry(number & 1)
+                }
+                else {
+                    self.cpsr.setCarry(0);
+                }
+            }
         }
 
         res
     }
 
-    pub fn LSR (&mut self, number: u32, mut amount: u32, affectFlags: bool) -> u32 {
-        //debug_assert!(amount < 32 && amount != 0);
-        amount &= 31;
-        let res = number >> amount;
+    pub fn LSR (&mut self, number: u32, amount: u32, affectFlags: bool) -> u32 {
+        let res: u32;
 
-        if affectFlags && amount != 0 {
-            self.cpsr.setCarry(isBitSet!(number, amount-1) as u32);
+        if amount < 32 {
+            res = number >> amount;
+
+            if affectFlags && amount != 0 {
+                self.cpsr.setCarry(isBitSet!(number, amount-1) as u32);
+            }
+        }
+
+        else {
+            res = 0;
+            if affectFlags {
+                if amount == 32 {
+                    self.cpsr.setCarry(number >> 31);
+                }
+                else {
+                    self.cpsr.setCarry(0);
+                }
+            }
         }
 
         res

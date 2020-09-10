@@ -6,7 +6,6 @@ use crate::isBitSet;
 
 impl CPU {
     pub fn executeThumbInstruction (&mut self, bus: &mut Bus, instruction: u32) {
-        //self.logState();
         let lutIndex = (instruction >> 8) as usize;
         self.thumbLUT[lutIndex](self, bus, instruction);
     }

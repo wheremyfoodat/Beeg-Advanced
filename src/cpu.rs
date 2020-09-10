@@ -161,7 +161,6 @@ impl CPU {
     pub fn setCPSR(&mut self, val: u32) {
         self.changeMode(val & 0x1F);
         self.cpsr.setRaw(val);
-        println!("Switched to {:02X} mode!", val & 0x1F);
     }
 
     pub fn cpuModeToArrayIndex(mode: u32) -> usize {

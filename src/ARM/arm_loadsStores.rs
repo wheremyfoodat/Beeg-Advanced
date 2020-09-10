@@ -87,7 +87,7 @@ impl CPU {
         if isLoad {
             if isHalfword {
                 if signExtend {
-                    todo!("LDRSH!\n")
+                    self.ARM_LDRSH(rdIndex, address, bus);
                 }
 
                 else {
@@ -97,7 +97,7 @@ impl CPU {
 
             else {
                 if signExtend {
-                    todo!("LDRSB")
+                    self.ARM_LDRSB(rdIndex, address, bus);
                 }
 
                 else {
@@ -153,7 +153,11 @@ impl CPU {
             _ => {
                 let rm = self.gprs[(instruction & 0xF) as usize];
                 let shift = (instruction >> 5) & 3;
-                let shift_amount = (instruction >> 7) & 31;
+                let mut shift_amount = (instruction >> 7) & 31;
+
+                if shift_amount == 0 && (shift == 1 || shift == 2) { // LSR #0 and ASR #0 become LSR #32 and ASR #32 respectively
+                    shift_amount = 32;
+                }
 
                 match shift {
                     0 => offset = self.LSL(rm, shift_amount, false),
@@ -191,10 +195,6 @@ impl CPU {
     fn ARM_getMiscLoadStoreAddr (&mut self, addrMode: LoadStoreAddrModes, instruction: u32, bus: &mut Bus) -> u32 {
         let rnIndex = (instruction >> 16) & 0xF;
         let rdIndex = (instruction >> 12) & 0xF;
-
-        debug_assert!(rdIndex != rnIndex);
-
-
         let rn = self.getGPR(rnIndex);
 
         let mut offset = 0_u32;
@@ -205,6 +205,12 @@ impl CPU {
         let w = isBitSet!(instruction, 21);
         let mut shouldWriteBack = !(preIndexing && !w);
         let isLoad = isBitSet!(instruction, 20);
+
+        if isLoad && rdIndex == rnIndex {
+            shouldWriteBack = false;
+        }
+
+        debug_assert!(!(rdIndex == rnIndex && shouldWriteBack && !isLoad));
 
         match addrMode {
             LoadStoreAddrModes::ImmediateOffset => {
@@ -243,8 +249,26 @@ impl CPU {
         self.setGPR(rdIndex, val as u32, bus);
     }
 
+    fn ARM_LDRSH(&mut self, rdIndex: u32, address: u32, bus: &mut Bus) {
+        let mut val = bus.read16(address) as u32;
+        if (val >> 15) != 0 {
+            val |= 0xFFFF0000;
+        }
+
+        self.setGPR(rdIndex, val, bus);
+    }
+
     fn ARM_LDRB(&mut self, rdIndex: u32, address: u32, bus: &mut Bus) {
         self.setGPR(rdIndex, bus.read8(address) as u32, bus);
+    }
+
+    fn ARM_LDRSB(&mut self, rdIndex: u32, address: u32, bus: &mut Bus) {
+        let mut val = bus.read8(address) as u32;
+        if (val >> 7) != 0 {
+            val |= 0xFFFFFF00;
+        }
+
+        self.setGPR(rdIndex, val, bus);
     }
 
     fn ARM_STR(&mut self, rdIndex: u32, address: u32, bus: &mut Bus) {

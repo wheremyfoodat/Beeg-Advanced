@@ -80,18 +80,33 @@ impl CPU {
         let rsIndex = (instruction >> 3) & 0x7;
         let opcode = (instruction >> 6) & 0xF;
 
-        let rs = self.gprs[rsIndex as usize];
+        let mut rs = self.gprs[rsIndex as usize];
         let rd = self.gprs[rdIndex];
 
         match opcode {
             0 => self.gprs[rdIndex] = self._AND(rd, rs, true),
             1 => self.gprs[rdIndex] = self._EOR(rd, rs, true),
             2 => { self.gprs[rdIndex] = self.LSL(rd, rs, true); self.setSignAndZero(self.gprs[rdIndex]) },
-            3 => { self.gprs[rdIndex] = self.LSR(rd, rs, true); self.setSignAndZero(self.gprs[rdIndex]) },
-            4 => { self.gprs[rdIndex] = self.ASR(rd, rs, true); self.setSignAndZero(self.gprs[rdIndex]) },
+            3 => { 
+                   // if rs == 0 {
+                   //     rs = 32;
+                   //}
+                    self.gprs[rdIndex] = self.LSR(rd, rs, true); 
+                    self.setSignAndZero(self.gprs[rdIndex]) 
+            },
+            4 => { 
+               // if rs == 0 {
+               //     rs = 32;
+               // }
+                self.gprs[rdIndex] = self.ASR(rd, rs, true); 
+                self.setSignAndZero(self.gprs[rdIndex]) 
+            },
             5 => self.gprs[rdIndex] = self._ADC(rd, rs, true, self.cpsr.getCarry()),
             6 => self.gprs[rdIndex] = self._SBC(rd, rs, true, self.cpsr.getCarry()),
-            7 => { self.gprs[rdIndex] = self.ROR(rd, rs, true); self.setSignAndZero(self.gprs[rdIndex]) },
+            7 => {
+                    self.gprs[rdIndex] = self.ROR(rd, rs, true);
+                    self.setSignAndZero(self.gprs[rdIndex]) 
+            },
             8 => self._TST(rd, rs),
             9 => self.gprs[rdIndex] = self._SUB(0, rs, true),
             10 => self._CMP(rd, rs),

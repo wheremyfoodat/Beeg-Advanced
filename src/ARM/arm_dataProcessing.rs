@@ -48,6 +48,10 @@ impl CPU {
     }
 
     pub fn ARM_handleDataProcessingRegister (&mut self, bus: &mut Bus, instruction: u32) {
+        self.gprs[15] += 4; // For these instructions, pc is 3 steps ahead instead of 2
+                            // As such we stub it so that reading from it returns (addr of instr) + 12
+                            // Without wrecking the pipeline
+
         let s = isBitSet!(instruction, 20);
         let rdIndex = (instruction >> 12) & 0xF; 
         let rnIndex = (instruction >> 16) & 0xF;
@@ -62,6 +66,7 @@ impl CPU {
 
         let rn = self.getGPR(rnIndex);
         let mut rm = self.getGPR(rmIndex);
+        self.gprs[15] -= 4; // Reverse what we did in the first line of the function
 
         match shift {
             0 => rm = self.LSL(rm, shiftAmount, affectFlags),
@@ -98,13 +103,17 @@ impl CPU {
         let oldCarry = self.cpsr.getCarry();
 
         let shift = (instruction >> 5) & 3;
-        let shiftImm = (instruction >> 7) & 31;
+        let mut shiftImm = (instruction >> 7) & 31;
         let opcode = (instruction >> 21) & 0xF;
         let affectFlags = s && rdIndex != 15;
         debug_assert!(!(s && rdIndex == 15));
 
         let rn = self.getGPR(rnIndex);
         let mut rm = self.getGPR(rmIndex);
+
+        if shiftImm == 0 && (shift == 1 || shift == 2) { // LSR #0 and ASR #0 become LSR #32 and ASR #32 instead
+            shiftImm = 32;
+        }
 
         match shift {
             0 => rm = self.LSL(rm, shiftImm, affectFlags),
