@@ -156,8 +156,8 @@ impl CPU {
 
         else {
             self.pipeline[0] = bus.read16(self.gprs[15]) as u32;
-            self.pipeline[1] = bus.read16 (self.gprs[15] + 2) as u32;
-            self.pipeline[2] = bus.read16 (self.gprs[15] + 4) as u32;
+            self.pipeline[1] = bus.read16(self.gprs[15] + 2) as u32;
+            self.pipeline[2] = bus.read16(self.gprs[15] + 4) as u32;
             self.gprs[15] += 4;
         }
     }

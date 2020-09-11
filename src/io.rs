@@ -39,6 +39,12 @@ bitfield!{
     pub getSize,                _:        15, 14;
 }
 
+bitfield!{
+    pub struct BGOFS(u16);
+    pub getRaw,    setRaw:   15, 0;
+    pub getOffset, _     :    8, 0;                  
+}
+
 
 bitfield!{
     pub struct KEYINPUT(u16);

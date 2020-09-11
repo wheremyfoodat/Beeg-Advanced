@@ -52,14 +52,14 @@ impl GBA {
         }
 
         self.bus.ppu.isFrameReady = false;
-        let mut sprite = Sprite::new();
+        let sprite: Sprite;
 
         unsafe {
             self.texture.update_from_pixels(&self.bus.ppu.pixels, 240, 160, 0, 0);
             sprite = Sprite::with_texture(&self.texture);
         }
-
-        window.clear(Color::BLACK);
+        
+        // It's not necessary to clear the window since we're redrawing the whole thing anyways
         window.draw(&sprite);
         window.display();
     }

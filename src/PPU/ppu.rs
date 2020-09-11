@@ -1,14 +1,12 @@
 use crate::PPU::*;
-use crate::io::DISPSTAT;
-use crate::io::DISPCNT;
-use crate::io::BGCNT;
+use crate::io::{BGCNT, DISPSTAT, DISPCNT, BGOFS};
 use crate::helpers::get8BitColor;
 
 const RENDERING_MODE_CYCLES: u32 = 960;
 const HBLANK_MODE_CYCLES: u32 = 272;
 const CYCLES_PER_LINE: u32 = RENDERING_MODE_CYCLES + HBLANK_MODE_CYCLES;
-const WIDTH: u32 = 240;
-const HEIGHT: u32 = 160;
+pub const WIDTH: usize = 240;
+pub const HEIGHT: usize = 160;
 
 pub enum PPUModes {
     Rendering,
@@ -20,6 +18,8 @@ pub struct PPU {
     pub dispcnt: DISPCNT,
     pub dispstat: DISPSTAT,
     pub bg_controls: [BGCNT; 4],
+    pub bg_hofs: [BGOFS; 4],
+    pub bg_vofs: [BGOFS; 4],
     pub vcount: u16, // Only lower 8 bits are used on the GBA
 
     pub paletteRAM: [u8; 1024],
@@ -29,7 +29,7 @@ pub struct PPU {
     mode: PPUModes,
     cycles: u32,
     pub bufferIndex: usize,
-    pub pixels: [u8; 240 * 160 * 4],
+    pub pixels: [u8; HEIGHT * WIDTH * 4],
     pub isFrameReady: bool
 }
 
@@ -39,6 +39,8 @@ impl PPU {
             dispcnt: DISPCNT(0),
             dispstat: DISPSTAT(0),
             bg_controls: [BGCNT(0), BGCNT(0), BGCNT(0), BGCNT(0)],
+            bg_hofs: [BGOFS(0), BGOFS(0), BGOFS(0), BGOFS(0)],
+            bg_vofs: [BGOFS(0), BGOFS(0), BGOFS(0), BGOFS(0)],
             vcount: 0,
             
             paletteRAM: [0; 1024],

@@ -224,6 +224,14 @@ impl Bus {
         match address {
             0x4000000 => self.ppu.dispcnt.setRaw(val),
             0x4000008 => self.ppu.bg_controls[0].setRaw(val),
+            0x4000010 => self.ppu.bg_hofs[0].setRaw(val),
+            0x4000014 => self.ppu.bg_hofs[1].setRaw(val),
+            0x4000018 => self.ppu.bg_hofs[2].setRaw(val),
+            0x400001C => self.ppu.bg_hofs[3].setRaw(val),
+            0x4000012 => self.ppu.bg_vofs[0].setRaw(val),
+            0x4000016 => self.ppu.bg_vofs[1].setRaw(val),
+            0x400001A => self.ppu.bg_vofs[2].setRaw(val),
+            0x400001E => self.ppu.bg_vofs[3].setRaw(val),
             0x4000088 => { self.soundbiasStub = (val as u32 | self.soundbiasStub & 0xFFFF0000); println!("Wrote to SOUNDBIAS!") },
             0x4000202 => { self.interrupt_requests = val; println!("Wrote to IF!")}
             0x4000200 => { self.ie = val; println!("Wrote {:02X} to IE!", val) }
@@ -236,7 +244,7 @@ impl Bus {
             0x4000000 => self.ppu.dispcnt.setRaw(val as u16),
             0x4000080 => println!("Wrote to SOUNDCNT!"),
             0x4000088 => { self.soundbiasStub = val; println!("Wrote to SOUNDBIAS!") },
-            0x4000208 => self.mem.ime = (val & 1) == 1,
+            0x4000208 => self.ime = (val & 1) == 1,
             _ => todo!("Unimplemented 32-bit write to IO address {:08X}\n", address)
         }
     }
