@@ -145,4 +145,16 @@ impl CPU {
             _ => self.Thumb_handleBX(rs, bus) // BX
         }
     }
+
+    pub fn Thumb_handleAddSignedOffsetToSP (&mut self, bus: &mut Bus, instruction: u32) {
+        let imm = (instruction & 0x7F) << 2; // The immediate is a signed amount of words to be added to the sp
+        if isBitSet!(instruction, 7) {
+            self.gprs[13] -= imm;
+        }
+        
+        else {
+            self.gprs[13] += imm;
+        }
+
+    }
 }

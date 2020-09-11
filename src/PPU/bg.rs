@@ -12,12 +12,12 @@ impl PPU {
         let hofs = self.bg_hofs[0].getOffset() as u32;
         let bg_size = self.bg_controls[0].getSize();
 
-        let tile_y = y & 7;
         let mapStart = mapDataBase + ((y as u32 >> 3) & 31) * 64; // & 31 => wrap around the 32x32 tile map (TODO: add big map support)
 
         for x in 0..240 {
             let x_coord = x + hofs;
-            let tile_x = x_coord & 7;
+            let mut tile_x = x_coord & 7;
+            let mut tile_y = y & 7;
             let mut mapAddr = mapStart + (((x_coord >> 3) & 31) << 1);
 
             match bg_size {
@@ -34,8 +34,8 @@ impl PPU {
             let tileNum = (mapEntry & 0x3FF) as u32;
             let palNum = (mapEntry >> 12) as u8;
 
-            let hflip = isBitSet!(mapEntry, 10);
-            let vflip = isBitSet!(mapEntry, 11);
+            if isBitSet!(mapEntry, 10) { tile_x ^= 7; } // horizontal tile flip
+            if isBitSet!(mapEntry, 11) { tile_y ^= 7; } // vertical tile flip
 
             let mut tileAddr = tileDataBase;
             

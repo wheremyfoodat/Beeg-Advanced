@@ -5,14 +5,21 @@ use crate::isBitSet;
 
 impl CPU {
     pub fn Thumb_handleSPRelativeLoad (&mut self, bus: &mut Bus, instruction: u32) {
-        //let imm = (instruction & 0xFF) << 2;
-        //let sp = self.gprs[13];
-        //let rdIndex = (instruction >> 8) & 0x7;
+        let imm = (instruction & 0xFF) << 2;
+        let sp = self.gprs[13];
+        let rdIndex = (instruction >> 8) & 0x7;
 
-        //self.gprs[rdIndex as usize] = bus.read32(sp + imm);
-        todo!("[THUMB] SP relative load!\n");
+        self.gprs[rdIndex as usize] = bus.read32(sp + imm);
     }
 
+    pub fn Thumb_handleSPRelativeStore (&mut self, bus: &mut Bus, instruction: u32) {
+        let imm = (instruction & 0xFF) << 2;
+        let sp = self.gprs[13];
+        let rdIndex = (instruction >> 8) & 0x7;
+
+        bus.write32(sp + imm, self.gprs[rdIndex as usize]);
+    }
+ 
     pub fn Thumb_handlePCRelativeLoad (&mut self, bus: &mut Bus, instruction: u32) {
         let imm = (instruction & 0xFF) << 2;
         let rdIndex = (instruction >> 8) & 0x7;

@@ -48,4 +48,8 @@ impl CPU {
         self.cpsr.setThumbState(address & 1);
         self.setGPR(15, address, bus);
     }
+
+    pub fn Thumb_handleSWI (&mut self, bus: &mut Bus, instruction: u32) {
+        todo!("[THUMB] SWI!\n")
+    }
 }

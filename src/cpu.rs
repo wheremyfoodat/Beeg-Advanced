@@ -269,7 +269,7 @@ impl CPU {
             11 => self.cpsr.getNegative() != self.cpsr.getOverflow(),   // LT
             12 => self.cpsr.getZero() == 0 && (self.cpsr.getNegative() == self.cpsr.getOverflow()), // GT
             13 => self.cpsr.getZero() == 1 || (self.cpsr.getNegative() != self.cpsr.getOverflow()), // LE
-            _  => panic!("CONDITION CODE NV!\n")
+            _  => { panic!("CONDITION CODE NV!\n") }
         }
     }
 

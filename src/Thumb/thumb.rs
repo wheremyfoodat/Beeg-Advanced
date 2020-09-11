@@ -29,6 +29,10 @@ impl CPU {
                 self.thumbLUT[x] = Self::Thumb_handleSPRelativeLoad;
             }
 
+            else if x ==0xB0 { 
+                self.thumbLUT[x] = Self::Thumb_handleAddSignedOffsetToSP;
+            }
+
             else if (x >> 2) == 0b010001 { // TODO: possibly skip the opcode decoding by having separate handlers?
                 self.thumbLUT[x] = Self::Thumb_handleHighRegOp;
             }
@@ -65,6 +69,7 @@ impl CPU {
                 self.thumbLUT[x] = Self::Thumb_handlePOP;
             }
 
+            else if x == 0b11011111 { self.thumbLUT [x] = Self::Thumb_handleSWI}
             else if (x >> 4) == 0b1101 { self.thumbLUT[x] = Self::Thumb_handleConditionalBranch; }
             else if (x >> 3) == 0b11100 { self.thumbLUT[x] = Self::Thumb_handleUnconditionalBranch }
 
@@ -113,6 +118,8 @@ impl CPU {
             else if (x >> 1) == 0b0101101 { self.thumbLUT[x] = Self::Thumb_handleLoadHalfwordWithReg }
             else if (x >> 1) == 0b0101011 { self.thumbLUT[x] = Self::Thumb_handleLoadSignExtendedByte }
             else if (x >> 1) == 0b0101111 { self.thumbLUT[x] = Self::Thumb_handleLoadSignExtendedHalfword }
+            else if (x >> 3) == 0b10010 { self.thumbLUT[x] = Self::Thumb_handleSPRelativeStore }
+            else if (x >> 3) == 0b10011 { self.thumbLUT[x] = Self::Thumb_handleSPRelativeLoad }
 
             else { self.thumbLUT[x] = Self::Thumb_handleUndefined; }
         }
