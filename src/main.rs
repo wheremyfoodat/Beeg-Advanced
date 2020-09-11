@@ -5,7 +5,7 @@ pub mod gba;
 pub mod bus;
 pub mod cpu;
 pub mod mem;
-pub mod ppu;
+pub mod PPU;
 pub mod ARM;
 pub mod io;
 pub mod joypad;
@@ -20,7 +20,7 @@ use sfml::graphics::*;
 use sfml::window::*; // TODO: Not import the entire thing
 
 fn main() {
-    let mut gba = GBA::new("ROMs/ARMWrestlerFixed.gba".to_string());
+    let mut gba = GBA::new("ROMs/brin_demo.gba".to_string());
     gba.init();
 
     let mut window = RenderWindow::new(VideoMode::new(240, 160, 32),

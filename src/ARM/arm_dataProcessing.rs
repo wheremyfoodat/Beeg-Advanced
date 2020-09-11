@@ -1,8 +1,5 @@
-use crate::ARM::arm;
 use crate::bus::Bus;
 use crate::cpu::CPU;
-use crate::barrelShifter;
-use crate::cpu::CPUModes;
 
 #[macro_use]
 use crate::isBitSet;
@@ -48,6 +45,9 @@ impl CPU {
     }
 
     pub fn ARM_handleDataProcessingRegister (&mut self, bus: &mut Bus, instruction: u32) {
+        self.gprs[15] += 4; // PC is 3 steps ahead instead of 2 in this type of instr.
+                            // We stub it by making it go an extra step ahead during operand fetch
+
         let s = isBitSet!(instruction, 20);
         let rdIndex = (instruction >> 12) & 0xF; 
         let rnIndex = (instruction >> 16) & 0xF;
@@ -63,8 +63,7 @@ impl CPU {
         let mut rn = self.getGPR(rnIndex);
         let mut rm = self.getGPR(rmIndex);
 
-        if rnIndex == 15 { rn += 4; } // This instruction has PC = ($addr of instruction) + 12
-        if rmIndex == 15 { rm += 4; }
+        self.gprs[15] -= 4; // Undo what we did in the first line
 
         match shift {
             0 => rm = self.LSL(rm, shiftAmount, affectFlags),

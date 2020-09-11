@@ -35,7 +35,7 @@ pub struct CPU {
 
     pub r13_banks: [u32; 6],
     pub r14_banks: [u32; 6],
-    pub spsr_banks: [PSR; 5]
+    pub spsr_banks: [PSR; 5],
 }
 
 pub enum CPUStates {
@@ -57,7 +57,7 @@ impl CPU {
     pub fn new() -> CPU {
         CPU {
             gprs: [0; 16],
-            cpsr: PSR(0x6000001F),
+            cpsr: PSR(0x1F),
             spsr: PSR(0),
             pipeline: [0; 3],
             armLUT:   [Self::ARM_handleUndefined; 4096],
@@ -71,12 +71,13 @@ impl CPU {
         
             r13_banks: [0; 6],
             r14_banks: [0; 6],
-            spsr_banks: [PSR(0), PSR(0), PSR(0), PSR(0), PSR(0)]
+            spsr_banks: [PSR(0), PSR(0), PSR(0), PSR(0), PSR(0)],
         }
     }
 
     pub fn init(&mut self, bus: &Bus) {
-        // skipping BIOS:
+   /*   For skipping BIOS:
+        self.setCPSR(0x6000001F);
         self.gprs[0] = 0x08000000;
         self.gprs[1] = 0x000000EA;
         self.gprs[13] = 0x03007F00;
@@ -84,6 +85,9 @@ impl CPU {
         self.r13_banks[4] = 0x03007FA0; // SP IRQ
 
         self.gprs[15] = 0x08000000;
+    */
+        self.gprs[13] = 0x03007F00;
+        self.gprs[15] = 0;
         self.refillPipeline(bus);
         self.populateARMLut();
         self.populateThumbLUT();
@@ -250,6 +254,7 @@ impl CPU {
 
     pub fn isConditionTrue (&self, condition: u32) -> bool {
         match condition {
+            14 => true, // AL
             0 => self.cpsr.getZero()  == 1, // EQ
             1 => self.cpsr.getZero()  == 0, // NE
             2 => self.cpsr.getCarry() == 1, // CS
@@ -259,12 +264,11 @@ impl CPU {
             6 => self.cpsr.getOverflow() == 1, // VS
             7 => self.cpsr.getOverflow() == 0, // VC
             8 => self.cpsr.getCarry() == 1 && self.cpsr.getZero() == 0, // HI!
-            9 => self.cpsr.getCarry() == 0 && self.cpsr.getZero() == 1, // LO
+            9 => self.cpsr.getCarry() == 0 || self.cpsr.getZero() == 1, // LO
             10 => self.cpsr.getNegative() == self.cpsr.getOverflow(),   // GE 
             11 => self.cpsr.getNegative() != self.cpsr.getOverflow(),   // LT
             12 => self.cpsr.getZero() == 0 && (self.cpsr.getNegative() == self.cpsr.getOverflow()), // GT
             13 => self.cpsr.getZero() == 1 || (self.cpsr.getNegative() != self.cpsr.getOverflow()), // LE
-            14 => true, // AL
             _  => panic!("CONDITION CODE NV!\n")
         }
     }

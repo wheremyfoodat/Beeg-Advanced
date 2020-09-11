@@ -14,7 +14,7 @@ pub struct Memory {
 impl Memory {
     pub fn new(romPath: String) -> Memory {
         return Memory {
-            BIOS: Vec::new(),
+            BIOS: readFileIntoVec(&"ROMs/NormattBIOS.gba".to_string()),
             ROM:  readFileIntoVec(&romPath),
             eWRAM: [0; 256 * 1024],
             iWRAM: [0; 32 * 1024],
