@@ -1,6 +1,5 @@
-use crate::PPU::*;
 use crate::io::{BGCNT, DISPSTAT, DISPCNT, BGOFS};
-use crate::helpers::get8BitColor;
+use crate::bus::Bus;
 
 const RENDERING_MODE_CYCLES: u32 = 960;
 const HBLANK_MODE_CYCLES: u32 = 272;

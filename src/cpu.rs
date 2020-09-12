@@ -169,12 +169,12 @@ impl CPU {
 
     pub fn cpuModeToArrayIndex(mode: u32) -> usize {
         match mode {
-            0x10 | 0x1F => 0,
-            0x11 => 1,
-            0x12 => 2,
-            0x13 => 3,
-            0x17 => 4,
-            0x1B => 5,
+            0x10 | 0x1F => 0, // User/System
+            0x11 => 1, // FIQ
+            0x12 => 2, // IRQ
+            0x13 => 3, // SVC
+            0x17 => 4, // ABT
+            0x1B => 5, // UND
             _ => panic!("Invalid CPU mode!\n")
         }
     }

@@ -22,26 +22,11 @@ impl CPU {
         let operand2 = self.ROR(imm, rot_imm * 2, affectFlags);
         let opcode = (instruction >> 21) & 0xF;
 
-        debug_assert!(!(s && rdIndex == 15));
-
-        match opcode {
-            0   => self.ARM_AND(rdIndex, operand1, operand2, affectFlags, bus),
-            1   => self.ARM_EOR(rdIndex, operand1, operand2, affectFlags, bus),
-            2   => self.ARM_SUB(rdIndex, operand1, operand2, affectFlags, bus),
-            3   => todo!("[ARM] Implement RSB\n"),
-            4   => self.ARM_ADD(rdIndex, operand1, operand2, affectFlags, bus),
-            5   => self.ARM_ADC(rdIndex, operand1, operand2, affectFlags, oldCarry, bus),
-            6   => self.ARM_SBC(rdIndex, operand1, operand2, affectFlags, oldCarry, bus),
-            7   => self.ARM_SBC(rdIndex, operand2, operand1, affectFlags, oldCarry, bus),
-            8   => self._TST(operand1, operand2),
-            9   => self._TEQ(operand1, operand2),
-            10  => self._CMP(operand1, operand2),
-            11  => self._CMP(operand1, !operand2),
-            12  => self.ARM_ORR(rdIndex, operand1, operand2, affectFlags, bus),
-            13  => self.ARM_MOV(rdIndex, operand2, affectFlags, bus),
-            14  => self.ARM_BIC(rdIndex, operand1, operand2, affectFlags, bus),
-             _  => self.ARM_MVN(rdIndex, operand2, affectFlags, bus)
+        if s && rdIndex == 15 {
+            self.setCPSR(self.spsr.getRaw())
         }
+
+        self.executeDP(opcode, rdIndex, operand1, operand2, affectFlags, oldCarry, bus)
     }
 
     pub fn ARM_handleDataProcessingRegister (&mut self, bus: &mut Bus, instruction: u32) {
@@ -65,6 +50,10 @@ impl CPU {
 
         self.gprs[15] -= 4; // Undo what we did in the first line
 
+        if s && rdIndex == 15 {
+            self.setCPSR(self.spsr.getRaw())
+        }
+
         match shift {
             0 => rm = self.LSL(rm, shiftAmount, affectFlags),
             1 => rm = self.LSR(rm, shiftAmount, affectFlags),
@@ -72,24 +61,7 @@ impl CPU {
             _ => rm = self.ROR(rm, shiftAmount, affectFlags)
         }
 
-        match opcode {
-            0   => self.ARM_AND(rdIndex, rn, rm, affectFlags, bus),
-            1   => self.ARM_EOR(rdIndex, rn, rm, affectFlags, bus),
-            2   => self.ARM_SUB(rdIndex, rn, rm, affectFlags, bus),
-            3   => todo!("[ARM] Implement RSB\n"),
-            4   => self.ARM_ADD(rdIndex, rn, rm, affectFlags, bus),
-            5   => self.ARM_ADC(rdIndex, rn, rm, affectFlags, oldCarry, bus),
-            6   => self.ARM_SBC(rdIndex, rn, rm, affectFlags, oldCarry, bus),
-            7   => self.ARM_SBC(rdIndex, rm, rn, affectFlags, oldCarry, bus),
-            8   => self._TST(rn, rm),
-            9   => self._TEQ(rn, rm),
-            10  => self._CMP(rn, rm),
-            11  => self._CMP(rn, !rm),
-            12  => self.ARM_ORR(rdIndex, rn, rm, affectFlags, bus),
-            13  => self.ARM_MOV(rdIndex, rm, affectFlags, bus),
-            14  => self.ARM_BIC(rdIndex, rn, rm, affectFlags, bus),
-             _  => self.ARM_MVN(rdIndex, rm, affectFlags, bus)
-        }
+        self.executeDP(opcode, rdIndex, rn, rm, affectFlags, oldCarry, bus)
     }
 
     pub fn ARM_handleDataProcessingImmShift (&mut self, bus: &mut Bus, instruction: u32) {
@@ -112,6 +84,10 @@ impl CPU {
             shiftImm = 32;
         }
 
+        if s && rdIndex == 15 {
+            self.setCPSR(self.spsr.getRaw())
+        }
+
         match shift {
             0 => rm = self.LSL(rm, shiftImm, affectFlags),
             1 => rm = self.LSR(rm, shiftImm, affectFlags),
@@ -127,23 +103,27 @@ impl CPU {
             }
         }
 
+        self.executeDP(opcode, rdIndex, rn, rm, affectFlags, oldCarry, bus)
+    }
+
+    pub fn executeDP (&mut self, opcode: u32, rdIndex: u32, operand1: u32, operand2: u32, affectFlags: bool, oldCarry: u32, bus: &mut Bus) {
         match opcode {
-            0   => self.ARM_AND(rdIndex, rn, rm, affectFlags, bus),
-            1   => self.ARM_EOR(rdIndex, rn, rm, affectFlags, bus),
-            2   => self.ARM_SUB(rdIndex, rn, rm, affectFlags, bus),
-            3   => todo!("[ARM] Implement RSB\n"),
-            4   => self.ARM_ADD(rdIndex, rn, rm, affectFlags, bus),
-            5   => self.ARM_ADC(rdIndex, rn, rm, affectFlags, oldCarry, bus),
-            6   => self.ARM_SBC(rdIndex, rn, rm, affectFlags, oldCarry, bus),
-            7   => self.ARM_SBC(rdIndex, rm, rn, affectFlags, oldCarry, bus),
-            8   => self._TST(rn, rm),
-            9   => self._TEQ(rn, rm),
-            10  => self._CMP(rn, rm),
-            11  => self._CMP(rn, !rm),
-            12  => self.ARM_ORR(rdIndex, rn, rm, affectFlags, bus),
-            13  => self.ARM_MOV(rdIndex, rm, affectFlags, bus),
-            14  => self.ARM_BIC(rdIndex, rn, rm, affectFlags, bus),
-             _  => self.ARM_MVN(rdIndex, rm, affectFlags, bus)
+            0   => self.ARM_AND(rdIndex, operand1, operand2, affectFlags, bus),
+            1   => self.ARM_EOR(rdIndex, operand1, operand2, affectFlags, bus),
+            2   => self.ARM_SUB(rdIndex, operand1, operand2, affectFlags, bus),
+            3   => self.ARM_SUB(rdIndex, operand2, operand1, affectFlags, bus),
+            4   => self.ARM_ADD(rdIndex, operand1, operand2, affectFlags, bus),
+            5   => self.ARM_ADC(rdIndex, operand1, operand2, affectFlags, oldCarry, bus),
+            6   => self.ARM_SBC(rdIndex, operand1, operand2, affectFlags, oldCarry, bus),
+            7   => self.ARM_SBC(rdIndex, operand2, operand1, affectFlags, oldCarry, bus),
+            8   => self._TST(operand1, operand2),
+            9   => self._TEQ(operand1, operand2),
+            10  => self._CMP(operand1, operand2),
+            11  => self._CMP(operand1, !operand2),
+            12  => self.ARM_ORR(rdIndex, operand1, operand2, affectFlags, bus),
+            13  => self.ARM_MOV(rdIndex, operand2, affectFlags, bus),
+            14  => self.ARM_BIC(rdIndex, operand1, operand2, affectFlags, bus),
+             _  => self.ARM_MVN(rdIndex, operand2, affectFlags, bus)
         }
     }
     

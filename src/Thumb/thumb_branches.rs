@@ -50,6 +50,14 @@ impl CPU {
     }
 
     pub fn Thumb_handleSWI (&mut self, bus: &mut Bus, instruction: u32) {
-        todo!("[THUMB] SWI!\n")
+        let lr = self.gprs[15] - 2;
+        let cpsr = self.cpsr.getRaw();
+        self.changeMode(0x13); // switch to SVC mode
+        self.gprs[14] = lr;
+        self.cpsr.setThumbState(0); // Switch to ARM mode, disable interrupts
+        self.cpsr.setIRQDisable(1);
+
+        self.setGPR(15, 0x8, bus); // jump to BIOS SWI handler
+        self.spsr.setRaw(cpsr) // Set SPSR to previous CPSR (needed to return from the SWI)
     }
 }

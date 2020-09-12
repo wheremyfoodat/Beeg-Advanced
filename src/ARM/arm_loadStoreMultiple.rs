@@ -14,6 +14,7 @@ impl CPU {
 
         if switchToUser {
             if isBitSet!(instruction, 15) {
+                todo!("LDM that loads r15 with S mode bit set, might be wrong!");
                 self.setCPSR(self.spsr.getRaw());   
             }
 
