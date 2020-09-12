@@ -30,6 +30,7 @@ pub struct PPU {
     pub bufferIndex: usize,
     pub pixels: [u8; HEIGHT * WIDTH * 4],
     pub isFrameReady: bool,
+    pub isInHBlank: bool, // For HBlank-in-vblank mode
     pub interruptFlags: u16
 }
 
@@ -52,6 +53,7 @@ impl PPU {
             cycles: 0,
             bufferIndex: 0,
             isFrameReady: false,
+            isInHBlank: false,
             interruptFlags: 0
         }
     }
@@ -85,10 +87,18 @@ impl PPU {
 
             PPUModes::VBlank => {
                 if self.cycles >= HBLANK_MODE_CYCLES {
+                    if !self.isInHBlank && self.dispstat.getHBlankIRQEnable() == 1{ // Handle "HBlank in VBlank mode"
+                        self.interruptFlags |= 0b10; // Request HBlank IRQ
+                        println!("Hblank interrupt during VBlank!")
+                    }
+
+                    self.isInHBlank = true;
+                    
                     self.dispstat.setHBlankFlag(1);
                     if self.cycles >= CYCLES_PER_LINE {
                         self.cycles -= CYCLES_PER_LINE;
                         self.vcount += 1;
+                        self.isInHBlank = false;
 
                         self.dispstat.setHBlankFlag(0);
                         if self.vcount == 228 {
@@ -109,9 +119,11 @@ impl PPU {
             PPUModes::Rendering => {
                 self.dispstat.setHBlankFlag(0);
                 self.dispstat.setVBlankFlag(0);
+                self.isInHBlank = false;
             }
 
             PPUModes::HBlank => {
+                self.isInHBlank = true;
                 if self.dispstat.getHBlankIRQEnable() == 1 {
                    self.interruptFlags |= 0b10; // Request HBlank IRQ
                    println!("Hblank interrupt!")
@@ -123,6 +135,7 @@ impl PPU {
 
             PPUModes::VBlank => {
                 if self.dispstat.getVBlankIRQEnable() == 1 {
+                    self.isInHBlank = false;
                     self.interruptFlags |= 0b1; // Request VBlank IRQ
                     println!("Vblank interrupt!")
                 }

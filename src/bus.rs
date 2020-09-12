@@ -232,6 +232,7 @@ impl Bus {
     pub fn readIO8 (& self, address: u32) -> u8 {
         match address {
             0x4000006 => self.ppu.vcount as u8,
+            0x4000089 => (self.soundbiasStub >> 8) as u8,
             _ => {panic!("Unimplemented 8-bit read from MMIO address {:08X}", address); 0}
         }
     }
@@ -248,7 +249,7 @@ impl Bus {
             0x4000202 => { println!("Read from IF which is semi-stubbed!"); self.ppu.interruptFlags}
             0x4000204 => self.waitcnt,
             0x4000208 => self.ime as u16,
-            _ => {panic!("Unimplemented 16-bit read from MMIO address {:08X}", address); 0}
+            _ => {println!("Unimplemented 16-bit read from MMIO address {:08X}", address); 0}
         }
     }
 
@@ -256,7 +257,7 @@ impl Bus {
         match address {
             0x4000000 => self.ppu.dispcnt.getRaw() as u32,
             0x4000200 => (self.ppu.interruptFlags << 8) as u32 | self.ie as u32,
-            _ => {panic!("Unimplemented 32-bit read from MMIO address {:08X}", address); 0}
+            _ => {println!("Unimplemented 32-bit read from MMIO address {:08X}", address); 0}
         }
     }
 
