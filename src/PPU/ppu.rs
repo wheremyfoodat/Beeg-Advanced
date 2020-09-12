@@ -71,6 +71,8 @@ impl PPU {
                 if self.cycles >= HBLANK_MODE_CYCLES {
                     self.cycles -= HBLANK_MODE_CYCLES;
                     self.vcount += 1;
+                    self.compareLYC();
+
                     if self.vcount == 160 {
                         self.switchMode(PPUModes::VBlank)
                     }
@@ -93,6 +95,8 @@ impl PPU {
                             self.vcount = 0;
                             self.switchMode(PPUModes::Rendering);
                         }
+
+                        self.compareLYC();
                     }
                 }
             }
@@ -109,7 +113,8 @@ impl PPU {
 
             PPUModes::HBlank => {
                 if self.dispstat.getHBlankIRQEnable() == 1 {
-                    self.interruptFlags |= 0b10 // Request HBlank IRQ
+                   self.interruptFlags |= 0b10; // Request HBlank IRQ
+                   println!("Hblank interrupt!")
                 }
 
                 self.renderScanline();
@@ -118,7 +123,8 @@ impl PPU {
 
             PPUModes::VBlank => {
                 if self.dispstat.getVBlankIRQEnable() == 1 {
-                    self.interruptFlags |= 0x1 // Request VBlank IRQ
+                    self.interruptFlags |= 0b1; // Request VBlank IRQ
+                    println!("Vblank interrupt!")
                 }
 
                 self.renderBuffer();
@@ -151,5 +157,20 @@ impl PPU {
 
     pub fn renderBuffer(&mut self) {
         self.isFrameReady = true;
+    }
+
+    pub fn compareLYC (&mut self) {
+        let lyc = self.dispstat.getLYC();
+        if self.vcount == lyc {
+            self.dispstat.setCoincidenceFlag(1);
+            if self.dispstat.getLYCIRQEnable() == 1 {
+                self.interruptFlags |= 0b100;
+                println!("LYC interrupt!")
+            }
+        }
+
+        else {
+            self.dispstat.setCoincidenceFlag(0);
+        }
     }
 }

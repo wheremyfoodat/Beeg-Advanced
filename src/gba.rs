@@ -4,10 +4,7 @@ extern crate sfml;
 use sfml::graphics::*;
 use sfml::window::*;
 use sfml::system::SfBox;
-
-use std::fs::{self, File};
-use std::io::prelude::*;
-use std::io::LineWriter;    
+   
 
 pub struct GBA {
     cpu: CPU,
@@ -31,7 +28,7 @@ impl GBA {
 
     pub fn step(&mut self) {
         self.cpu.step(&mut self.bus);
-        self.bus.stepComponents(2);
+        self.bus.stepComponents(1);
     }
 
     pub fn executeFrame (&mut self, window: &mut sfml::graphics::RenderWindow) {
@@ -49,6 +46,10 @@ impl GBA {
                 //file.write_all(self.cpu.log.as_bytes());
                 std::process::exit(0);
             }
+        }
+
+        if Key::is_pressed(Key::D) {
+            self.cpu.logState();
         }
 
         self.bus.ppu.isFrameReady = false;

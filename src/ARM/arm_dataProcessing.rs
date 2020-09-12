@@ -23,7 +23,8 @@ impl CPU {
         let opcode = (instruction >> 21) & 0xF;
 
         if s && rdIndex == 15 {
-            self.setCPSR(self.spsr.getRaw())
+            self.setCPSR(self.spsr.getRaw());
+            //println!("IRQ/SWI return")
         }
 
         self.executeDP(opcode, rdIndex, operand1, operand2, affectFlags, oldCarry, bus)
@@ -51,7 +52,8 @@ impl CPU {
         self.gprs[15] -= 4; // Undo what we did in the first line
 
         if s && rdIndex == 15 {
-            self.setCPSR(self.spsr.getRaw())
+            self.setCPSR(self.spsr.getRaw());
+            //println!("IRQ/SWI return")
         }
 
         match shift {
@@ -85,7 +87,8 @@ impl CPU {
         }
 
         if s && rdIndex == 15 {
-            self.setCPSR(self.spsr.getRaw())
+            self.setCPSR(self.spsr.getRaw());
+            //println!("IRQ/SWI return")
         }
 
         match shift {

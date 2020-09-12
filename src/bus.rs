@@ -2,12 +2,14 @@ use ppu::PPU;
 
 use crate::mem::*;
 use crate::PPU::ppu;
+use crate::DMA::DMAChannel;
 use crate::joypad::Joypad;
 
 pub struct Bus {
     mem: Memory,
     pub ppu: PPU,
     pub joypad: Joypad,
+    pub dmaChannels: [DMAChannel; 4],
 
     // some MMIO registers that don't really fit in the peripheral structs
     // interrupt registers
@@ -26,6 +28,7 @@ impl Bus {
             mem: Memory::new(romPath),
             ppu: PPU::new(),
             joypad: Joypad::new(),
+            dmaChannels: [DMAChannel::new(), DMAChannel::new(), DMAChannel::new(), DMAChannel::new()],
 
             ime: false,
             ie: 0,
@@ -229,7 +232,7 @@ impl Bus {
     pub fn readIO8 (& self, address: u32) -> u8 {
         match address {
             0x4000006 => self.ppu.vcount as u8,
-            _ => {println!("Unimplemented 8-bit read from MMIO address {:08X}", address); 0}
+            _ => {panic!("Unimplemented 8-bit read from MMIO address {:08X}", address); 0}
         }
     }
 
@@ -241,10 +244,11 @@ impl Bus {
             0x4000088 => { println!("Read from SOUNDBIAS (Unimpl)"); self.soundbiasStub as u16},
             0x4000102 | 0x4000106 | 0x400010A | 0x400010E => { println!("Read from Timer control regs! (Unimpl)"); 0}
             0x4000130 => self.joypad.keyinput.getRaw(),
+            0x4000200 => self.ie,
             0x4000202 => { println!("Read from IF which is semi-stubbed!"); self.ppu.interruptFlags}
             0x4000204 => self.waitcnt,
             0x4000208 => self.ime as u16,
-            _ => {println!("Unimplemented 16-bit read from MMIO address {:08X}", address); 0}
+            _ => {panic!("Unimplemented 16-bit read from MMIO address {:08X}", address); 0}
         }
     }
 
@@ -252,7 +256,7 @@ impl Bus {
         match address {
             0x4000000 => self.ppu.dispcnt.getRaw() as u32,
             0x4000200 => (self.ppu.interruptFlags << 8) as u32 | self.ie as u32,
-            _ => {println!("Unimplemented 32-bit read from MMIO address {:08X}", address); 0}
+            _ => {panic!("Unimplemented 32-bit read from MMIO address {:08X}", address); 0}
         }
     }
 
@@ -272,7 +276,10 @@ impl Bus {
     pub fn writeIO16 (&mut self, address: u32, val: u16) {
         match address {
             0x4000000 => self.ppu.dispcnt.setRaw(val),
-            0x4000004 => self.ppu.dispstat.setRaw(val & 0xFF38),
+            0x4000004 => {
+                self.ppu.dispstat.setRaw(val & 0xFF38);
+                self.ppu.compareLYC();
+            },
             0x4000008 => self.ppu.bg_controls[0].setRaw(val),
             0x4000010 => self.ppu.bg_hofs[0].setRaw(val),
             0x4000014 => self.ppu.bg_hofs[1].setRaw(val),

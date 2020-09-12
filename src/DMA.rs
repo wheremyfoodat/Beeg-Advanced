@@ -1,11 +1,11 @@
 use crate::bus::Bus;
 use crate::io::DMACNT;
 
-struct DMAChannel {
-    wordCount: u16,
-    sourceAddr: u32,
-    destAddr: u32,
-    controlReg: DMACNT
+pub struct DMAChannel {
+    pub wordCount: u16,
+    pub sourceAddr: u32,
+    pub destAddr: u32,
+    pub controlReg: DMACNT
 }
 
 impl DMAChannel {

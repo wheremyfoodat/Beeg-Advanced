@@ -22,11 +22,12 @@ use sfml::graphics::*;
 use sfml::window::*; // TODO: Not import the entire thing
 
 fn main() {
-    let mut gba = GBA::new("ROMs/Kirby.gba".to_string());
+    let gameName = "irq_demo";
+    let mut gba = GBA::new(format!("ROMs/{}.gba", gameName).to_string());
     gba.init();
 
     let mut window = RenderWindow::new(VideoMode::new(240, 160, 32),
-                            "Beeg Advanced",
+                            &format!("Beeg Advanced: {}", gameName),
                             Style::RESIZE | Style::CLOSE,
                   &ContextSettings::default());
 

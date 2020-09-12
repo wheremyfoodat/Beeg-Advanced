@@ -4,7 +4,6 @@ use crate::bus::Bus;
 impl CPU {
     pub fn pollInterrupts (&mut self, bus: &mut Bus) {
         if self.cpsr.getIRQDisable() == 0 && bus.ime && ((bus.ie & bus.ppu.interruptFlags as u16) != 0) { // TODO: Handle writes to IF and misc interrupts
-   
             let cpsr = self.cpsr.getRaw();
             let lr: u32;
 
@@ -19,12 +18,13 @@ impl CPU {
                 todo!("Interrupts in Thumb mode!")
             }
 
+            self.changeMode(0x12); // Enter IRQ mode
+            self.spsr.setRaw(cpsr); // Copy previous CPSR to current mode SPSR
             self.cpsr.setThumbState(0); // Enter ARM mode
             self.cpsr.setIRQDisable(1); // Disable IRQs
-            self.changeMode(0x12); // Enter IRQ mode
             self.gprs[14] = lr; // Set return address
-            self.setGPR(15, 0x18+4, bus); // Jump to BIOS IRQ handler
-            self.spsr.setRaw(cpsr); // Copy previous CPSR to current mode SPSR
+            self.gprs[15] = 0x18;
+            self.refillPipeline(bus);
         }
     }
 }

@@ -58,7 +58,7 @@ impl CPU {
     pub fn new() -> CPU {
         CPU {
             gprs: [0; 16],
-            cpsr: PSR(0x1F),
+            cpsr: PSR(0x5F),
             spsr: PSR(0),
             pipeline: [0; 3],
             armLUT:   [Self::ARM_handleUndefined; 4096],
@@ -77,7 +77,7 @@ impl CPU {
     }
 
     pub fn init(&mut self, bus: &Bus) {
-   /*   For skipping BIOS:
+    /* For skipping BIOS:
         self.setCPSR(0x6000001F);
         self.gprs[0] = 0x08000000;
         self.gprs[1] = 0x000000EA;
@@ -114,6 +114,7 @@ impl CPU {
     }
 
     pub fn step (&mut self, bus: &mut Bus) {
+        self.pollInterrupts(bus);
         if self.isInARMState() {
             self.executeARMInstruction(bus, self.pipeline[0]);
         }
@@ -123,8 +124,6 @@ impl CPU {
         }
 
         self.advancePipeline(bus);
-
-        self.pollInterrupts(bus);
     }
 
     pub fn advancePipeline(&mut self, bus: &Bus) {
