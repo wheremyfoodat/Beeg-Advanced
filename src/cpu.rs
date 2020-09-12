@@ -1,5 +1,6 @@
 use bitfield::*;
 use crate::bus::*;
+use crate::irqs;
 
 bitfield!{
     pub struct PSR(u32);
@@ -121,7 +122,9 @@ impl CPU {
             self.executeThumbInstruction(bus, self.pipeline[0]);
         }
 
-        self.advancePipeline(bus)
+        self.advancePipeline(bus);
+
+        self.pollInterrupts(bus);
     }
 
     pub fn advancePipeline(&mut self, bus: &Bus) {

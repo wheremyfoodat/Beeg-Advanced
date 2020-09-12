@@ -24,7 +24,7 @@ impl CPU {
         for x in 0..4096 {
 
             if x & 0xF00 == 0xF00 { // SWI
-                self.armLUT[x] = Self::ARM_handleUndefined;
+                self.armLUT[x] = Self::ARM_handleSWI;
             }
 
             else if (x & 0xF8F) == 0x89 {

@@ -6,6 +6,7 @@ pub struct Memory {
     pub ROM:  Vec <u8>,
     pub eWRAM: [u8; 256 * 1024],
     pub iWRAM: [u8; 32  * 1024], 
+    pub SRAM: [u8; 64 * 1024]
 }
 
 impl Memory {
@@ -14,7 +15,8 @@ impl Memory {
             BIOS: readFileIntoVec(&"ROMs/NormattBIOS.gba".to_string()),
             ROM:  readFileIntoVec(&romPath),
             eWRAM: [0; 256 * 1024],
-            iWRAM: [0; 32 * 1024]
+            iWRAM: [0; 32 * 1024],
+            SRAM:  [0; 64 * 1024]
         }
     }
 }

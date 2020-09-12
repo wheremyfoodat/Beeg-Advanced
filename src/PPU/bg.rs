@@ -38,11 +38,14 @@ impl PPU {
             if isBitSet!(mapEntry, 11) { tile_y ^= 7; } // vertical tile flip
 
             let mut tileAddr = tileDataBase;
+            let mut pixel: u8;
             
             if is8bpp {
                 tileAddr += tileNum * 64;
                 tileAddr += tile_y as u32 * 8;
-                todo!("8bpp tile!")
+                tileAddr += tile_x;
+                
+                pixel = self.VRAM[tileAddr as usize]
             }
             
             else {
@@ -51,14 +54,16 @@ impl PPU {
                 tileAddr += (tile_x >> 1);
 
                 let twoDots = self.VRAM[tileAddr as usize];
-                let pixel: u8 = (twoDots >> ((tile_x & 1) << 2)) & 0xF;
-                let palette = self.readPalette16(pixel + palNum * 16);
-
-                self.pixels[self.bufferIndex] = get8BitColor((palette & 0x1F) as u8);          // red
-                self.pixels[self.bufferIndex+1] = get8BitColor(((palette >> 5) & 0x1F) as u8); // green
-                self.pixels[self.bufferIndex+2] = get8BitColor(((palette >> 10) & 0x1F) as u8); // blue
-                self.pixels[self.bufferIndex+3] = 255; // alpha (always opaque)
+                pixel = (twoDots >> ((tile_x & 1) << 2)) & 0xF;
+                pixel += palNum * 16
             }
+
+            let palette = self.readPalette16(pixel);
+
+            self.pixels[self.bufferIndex] = get8BitColor((palette & 0x1F) as u8);          // red
+            self.pixels[self.bufferIndex+1] = get8BitColor(((palette >> 5) & 0x1F) as u8); // green
+            self.pixels[self.bufferIndex+2] = get8BitColor(((palette >> 10) & 0x1F) as u8); // blue
+            self.pixels[self.bufferIndex+3] = 255; // alpha (always opaque)
 
             self.bufferIndex += 4;
         }

@@ -29,7 +29,8 @@ pub struct PPU {
     cycles: u32,
     pub bufferIndex: usize,
     pub pixels: [u8; HEIGHT * WIDTH * 4],
-    pub isFrameReady: bool
+    pub isFrameReady: bool,
+    pub interruptFlags: u16
 }
 
 impl PPU {
@@ -50,7 +51,8 @@ impl PPU {
             mode: PPUModes::Rendering,
             cycles: 0,
             bufferIndex: 0,
-            isFrameReady: false
+            isFrameReady: false,
+            interruptFlags: 0
         }
     }
 
@@ -106,11 +108,19 @@ impl PPU {
             }
 
             PPUModes::HBlank => {
+                if self.dispstat.getHBlankIRQEnable() == 1 {
+                    self.interruptFlags |= 0b10 // Request HBlank IRQ
+                }
+
                 self.renderScanline();
                 self.dispstat.setHBlankFlag(1);
             }
 
             PPUModes::VBlank => {
+                if self.dispstat.getVBlankIRQEnable() == 1 {
+                    self.interruptFlags |= 0x1 // Request VBlank IRQ
+                }
+
                 self.renderBuffer();
                 self.dispstat.setVBlankFlag(1);
             }

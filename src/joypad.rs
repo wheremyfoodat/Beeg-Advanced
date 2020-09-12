@@ -16,7 +16,7 @@ impl Joypad {
 
     pub fn update(&mut self) {
         let mut newKeyinput = 0_u16;
-        for i in (0..10) {
+        for i in 0..10 {
             if !Key::is_pressed(KEYS[i]) {
                 newKeyinput |= (1 << i);
             }

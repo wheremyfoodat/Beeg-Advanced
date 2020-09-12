@@ -9,7 +9,7 @@ impl CPU {
         let mut writeback = isBitSet!(instruction, 21);
         let switchToUser = isBitSet!(instruction, 22);
         let increment = isBitSet!(instruction, 23);
-        let changeSPBeforeTransfer = isBitSet!(instruction, 24);
+        let mut changeSPBeforeTransfer = isBitSet!(instruction, 24);
         let currentMode = self.cpsr.getMode();
 
         if switchToUser {
@@ -65,10 +65,11 @@ impl CPU {
         let writeback = isBitSet!(instruction, 21);
         let switchToUser = isBitSet!(instruction, 22);
         let increment = isBitSet!(instruction, 23);
-        let changeSPBeforeTransfer = isBitSet!(instruction, 24);
+        let mut changeSPBeforeTransfer = isBitSet!(instruction, 24);
         let currentMode = self.cpsr.getMode();
         
         if switchToUser {
+            todo!("User mode STM");
             self.changeMode(0x10);
         }
         

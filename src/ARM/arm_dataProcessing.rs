@@ -75,7 +75,7 @@ impl CPU {
         let mut shiftImm = (instruction >> 7) & 31;
         let opcode = (instruction >> 21) & 0xF;
         let affectFlags = s && rdIndex != 15;
-        debug_assert!(!(s && rdIndex == 15));
+       // debug_assert!(!(s && rdIndex == 15));
 
         let rn = self.getGPR(rnIndex);
         let mut rm = self.getGPR(rmIndex);

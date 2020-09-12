@@ -27,4 +27,15 @@ impl CPU {
         self.cpsr.setThumbState(rm & 1);
         self.setGPR(15, rm, bus);
     }
+
+    pub fn ARM_handleSWI (&mut self, bus: &mut Bus, instruction: u32) {
+        let lr = self.gprs[15] - 4;
+        let cpsr = self.cpsr.getRaw();
+        self.changeMode(0x13); // switch to SVC mode
+        self.gprs[14] = lr;
+        self.cpsr.setIRQDisable(1); // disable interrupts
+
+        self.setGPR(15, 0x8, bus); // jump to BIOS SWI handler
+        self.spsr.setRaw(cpsr) // Set SPSR to previous CPSR (needed to return from the SWI)
+    }
 }
