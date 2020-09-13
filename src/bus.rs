@@ -121,6 +121,13 @@ impl Bus {
 
             4 => val = self.readIO32(address),
 
+            6 => {
+                val = self.ppu.VRAM[(address - 0x6000000) as usize] as u32;
+                val |= (self.ppu.VRAM[(address - 0x6000000 + 1) as usize] as u32) << 8;
+                val |= (self.ppu.VRAM[(address - 0x6000000 + 2) as usize] as u32) << 16;
+                val |= (self.ppu.VRAM[(address - 0x6000000 + 3) as usize] as u32) << 24;
+            },
+
             7 => {
                 val = self.ppu.OAM[(address & 0x3FF) as usize] as u32;
                 val |= (self.ppu.OAM[((address + 1) & 0x3FF) as usize] as u32) << 8;
