@@ -55,7 +55,10 @@ impl PPU {
 
                 let twoDots = self.VRAM[tileAddr as usize];
                 pixel = (twoDots >> ((tile_x & 1) << 2)) & 0xF;
-                pixel += palNum * 16
+
+                if pixel != 0 {
+                    pixel += palNum * 16
+                }
             }
 
             let palette = self.readPalette16(pixel);
