@@ -256,7 +256,7 @@ impl Bus {
     pub fn readIO32 (&self, address: u32) -> u32 {
         match address {
             0x4000000 => self.ppu.dispcnt.getRaw() as u32,
-            0x4000200 => (self.ppu.interruptFlags << 8) as u32 | self.ie as u32,
+            0x4000200 => ((self.ppu.interruptFlags as u32) << 16) | self.ie as u32,
             _ => {println!("Unimplemented 32-bit read from MMIO address {:08X}", address); 0}
         }
     }

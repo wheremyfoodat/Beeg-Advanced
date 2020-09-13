@@ -22,7 +22,7 @@ use sfml::graphics::*;
 use sfml::window::*; // TODO: Not import the entire thing
 
 fn main() {
-    let gameName = "Kirby";
+    let gameName = "irq_demo";
     let mut gba = GBA::new(format!("ROMs/{}.gba", gameName).to_string());
     gba.init();
 
