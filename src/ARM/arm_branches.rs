@@ -29,6 +29,7 @@ impl CPU {
     }
 
     pub fn ARM_handleSWI (&mut self, bus: &mut Bus, instruction: u32) {
+        println!("ARM mode SWI at address: {:08X}", self.gprs[15]-8);
         let lr = self.gprs[15] - 4;
         let cpsr = self.cpsr.getRaw();
         self.changeMode(0x13); // switch to SVC mode

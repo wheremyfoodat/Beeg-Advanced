@@ -1,13 +1,15 @@
 use crate::bus::Bus;
 use crate::cpu::CPU;
+
+extern crate sfml;
+use sfml::graphics::*;
+use sfml::window::*;
+
 use crate::isBitSet;
 
 
 impl CPU {
     pub fn executeARMInstruction (&mut self, bus: &mut Bus, instruction: u32) {
-        //if (self.gprs[15] > 0x1000000) {
-        //   println!("[ARM] Executing from {:08X}", self.gprs[15]-8);
-        //}
         if !self.isConditionTrue(instruction >> 28) {
             return
         }

@@ -110,7 +110,7 @@ impl CPU {
             8 => self._TST(rd, rs),
             9 => self.gprs[rdIndex] = self._SUB(0, rs, true),
             10 => self._CMP(rd, rs),
-            11 => self._CMP(rd, !rs),
+            11 => self._CMN(rd, rs),
             12 => self.gprs[rdIndex] = self._ORR(rd, rs, true),
             13 => self.gprs[rdIndex] = self._MUL(rd, rs, true),
             14 => self.gprs[rdIndex] = self._BIC(rd, rs, true),

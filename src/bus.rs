@@ -186,6 +186,11 @@ impl Bus {
                 self.ppu.VRAM[(address - 0x6000000 + 1) as usize] = (val >> 8) as u8;
             }
 
+            7 => {
+                self.ppu.OAM[(address - 0x7000000) as usize] = (val & 0xFF) as u8;
+                self.ppu.OAM[(address - 0x7000000 + 1) as usize] = (val >> 8) as u8;
+            }
+
             _ => {
                 todo!("Unimplemented 16-bit write to addr {:08X}", address);
             }
@@ -263,6 +268,7 @@ impl Bus {
     pub fn readIO32 (&self, address: u32) -> u32 {
         match address {
             0x4000000 => self.ppu.dispcnt.getRaw() as u32,
+            0x4000004 => (self.ppu.dispstat.getRaw() as u32) | ((self.ppu.vcount as u32) << 16),
             0x4000200 => ((self.ppu.interruptFlags as u32) << 16) | self.ie as u32,
             _ => {println!("Unimplemented 32-bit read from MMIO address {:08X}", address); 0}
         }
@@ -274,7 +280,6 @@ impl Bus {
             0x4000084 => println!("Wrote to SOUNDCNT_X!"),
             0x4000208 => {
                 self.ime = (val & 1) != 0;
-                if self.ime {println!("Interrupts enabled!\n")}
             }
             0x4000301 => {}, //println!("Wrote to HALTCNT"),
             _ => println!("Unimplemented 8-bit write to IO address {:08X}\n", address)
@@ -311,7 +316,13 @@ impl Bus {
             0x4000000 => self.ppu.dispcnt.setRaw(val as u16),
             0x4000080 => println!("Wrote to SOUNDCNT!"),
             0x4000088 => { self.soundbiasStub = val; println!("Wrote to SOUNDBIAS!") },
-            0x4000208 => self.ime = (val & 1) == 1,
+            0x4000200 => {
+                self.ie = val as u16;
+                self.ppu.interruptFlags &= !((val >> 16) as u16);
+            }
+            0x4000208 => {
+                self.ime = (val & 1) == 1;
+            }
             _ => println!("Unimplemented 32-bit write to IO address {:08X}\n", address)
         }
     }

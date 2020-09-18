@@ -2,21 +2,21 @@ use crate::helpers::readFileIntoVec;
 
 pub struct Memory {
 // main. non-IO memory
-    pub BIOS: Vec <u8>,
-    pub ROM:  Vec <u8>,
-    pub eWRAM: [u8; 256 * 1024],
-    pub iWRAM: [u8; 32  * 1024], 
-    pub SRAM: [u8; 64 * 1024]
+    pub BIOS:  Vec <u8>,
+    pub ROM:   Vec <u8>,
+    pub eWRAM: Vec <u8>,
+    pub iWRAM: Vec <u8>,
+    pub SRAM:  Vec <u8>
 }
 
 impl Memory {
     pub fn new(romPath: String) -> Memory {
-        return Memory {
+        Memory {
             BIOS: readFileIntoVec(&"ROMs/NormattBIOS.gba".to_string()),
             ROM:  readFileIntoVec(&romPath),
-            eWRAM: [0; 256 * 1024],
-            iWRAM: [0; 32 * 1024],
-            SRAM:  [0; 64 * 1024]
+            eWRAM: vec![0; 256 * 1024],
+            iWRAM: vec![0; 32 * 1024],
+            SRAM:  vec![0; 64 * 1024]
         }
     }
 }

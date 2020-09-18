@@ -23,7 +23,7 @@ pub fn readFileIntoVec(filename: &String) -> Vec<u8> {
     let metadata = std::fs::metadata(&filename).expect("unable to read metadata");
     let mut buffer = vec![0; metadata.len() as usize];
     f.read(&mut buffer).expect("buffer overflow");
-
+    
     buffer
 }
 

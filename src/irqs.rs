@@ -14,7 +14,7 @@ impl CPU {
 
             else {
                 lr = self.gprs[15];
-                println!("Firing Thumb mode interrupt. Current instr address {:08X}\n Return address: {:08X}", self.gprs[15]-4, lr);
+                //println!("Firing Thumb mode interrupt. Current instr address {:08X}\n Return address: {:08X}", self.gprs[15]-4, lr);
                 //std::thread::sleep_ms(10000);
             }
 

@@ -89,7 +89,6 @@ impl PPU {
                 if self.cycles >= HBLANK_MODE_CYCLES {
                     if !self.isInHBlank && self.dispstat.getHBlankIRQEnable() == 1{ // Handle "HBlank in VBlank mode"
                         self.interruptFlags |= 0b10; // Request HBlank IRQ
-                        println!("Hblank interrupt during VBlank!")
                     }
 
                     self.isInHBlank = true;
@@ -126,7 +125,6 @@ impl PPU {
                 self.isInHBlank = true;
                 if self.dispstat.getHBlankIRQEnable() == 1 {
                    self.interruptFlags |= 0b10; // Request HBlank IRQ
-                   println!("Hblank interrupt!")
                 }
 
                 self.renderScanline();
@@ -137,7 +135,7 @@ impl PPU {
                 if self.dispstat.getVBlankIRQEnable() == 1 {
                     self.isInHBlank = false;
                     self.interruptFlags |= 0b1; // Request VBlank IRQ
-                    println!("Vblank interrupt!")
+                   // println!("Fired VBlank IRQ!")
                 }
 
                 self.renderBuffer();
@@ -164,7 +162,7 @@ impl PPU {
         match self.dispcnt.getMode() {
             0 => self.renderMode0(mapDataBase, tileDataBase, is8bpp),
             4 => self.renderMode4(),
-            _ => println!("Unimplemented BG mode {}", self.dispcnt.getMode())
+            _ => panic!("Unimplemented BG mode {}", self.dispcnt.getMode())
         }
     }
 
@@ -178,7 +176,6 @@ impl PPU {
             self.dispstat.setCoincidenceFlag(1);
             if self.dispstat.getLYCIRQEnable() == 1 {
                 self.interruptFlags |= 0b100;
-                println!("LYC interrupt!")
             }
         }
 

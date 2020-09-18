@@ -122,7 +122,7 @@ impl CPU {
             8   => self._TST(operand1, operand2),
             9   => self._TEQ(operand1, operand2),
             10  => self._CMP(operand1, operand2),
-            11  => self._CMP(operand1, !operand2),
+            11  => self._CMN(operand1, operand2),
             12  => self.ARM_ORR(rdIndex, operand1, operand2, affectFlags, bus),
             13  => self.ARM_MOV(rdIndex, operand2, affectFlags, bus),
             14  => self.ARM_BIC(rdIndex, operand1, operand2, affectFlags, bus),

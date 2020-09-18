@@ -36,7 +36,7 @@ pub struct CPU {
 
     pub r13_banks: [u32; 6],
     pub r14_banks: [u32; 6],
-    pub spsr_banks: [PSR; 5],
+    pub spsr_banks: [PSR; 5]
 }
 
 pub enum CPUStates {
@@ -72,12 +72,13 @@ impl CPU {
         
             r13_banks: [0; 6],
             r14_banks: [0; 6],
-            spsr_banks: [PSR(0), PSR(0), PSR(0), PSR(0), PSR(0)],
+            spsr_banks: [PSR(0), PSR(0), PSR(0), PSR(0), PSR(0)]
         }
     }
 
     pub fn init(&mut self, bus: &Bus) {
-    /* For skipping BIOS:
+    // For skipping BIOS:
+    /*  
         self.setCPSR(0x6000001F);
         self.gprs[0] = 0x08000000;
         self.gprs[1] = 0x000000EA;
@@ -305,9 +306,9 @@ impl CPU {
         let res = operand1 as u64 + operand2 as u64;
         
         if affectFlags {
-            self.cpsr.setCarry((res > 0xFFFFFFFF) as u32);
+            self.cpsr.setCarry((res >> 32) as u32);
             self.setSignAndZero(res as u32);
-            self.cpsr.setOverflow(((operand1 >> 31) == (operand2 >> 31) && (operand1 >> 31) != (res as u32 >> 31)) as u32)
+            self.cpsr.setOverflow(((operand1 ^ res as u32) & (operand2 ^ res as u32)) >> 31);
         }
 
         res as u32
@@ -317,9 +318,9 @@ impl CPU {
         let res = operand1 as u64 + operand2 as u64 + carry as u64;
 
         if affectFlags {
-            self.cpsr.setCarry((res > 0xFFFFFFFF) as u32);
+            self.cpsr.setCarry((res >> 32) as u32);
             self.setSignAndZero(res as u32);
-            self.cpsr.setOverflow(((operand1 >> 31) == (operand2 >> 31) && (operand1 >> 31) != (res as u32 >> 31)) as u32)
+            self.cpsr.setOverflow(((operand1 ^ res as u32) & (operand2 ^ res as u32)) >> 31);
         }
 
         res as u32
@@ -394,6 +395,14 @@ impl CPU {
         self.cpsr.setCarry((res <= operand1) as u32);
         self.setSignAndZero(res);
         self.cpsr.setOverflow(((operand1 >> 31) != (operand2 >> 31) && (operand2 >> 31) == (res >> 31)) as u32);
+    }
+
+    pub fn _CMN(&mut self, operand1: u32, operand2: u32) {
+        let res = operand1 as u64 + operand2 as u64;
+        
+        self.cpsr.setCarry((res >> 32) as u32);
+        self.setSignAndZero(res as u32);
+        self.cpsr.setOverflow(((operand1 ^ res as u32) & (operand2 ^ res as u32)) >> 31);
     }
 
     pub fn _TEQ(&mut self, operand1: u32, operand2: u32) {
