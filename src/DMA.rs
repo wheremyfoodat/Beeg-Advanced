@@ -18,3 +18,7 @@ impl DMAChannel {
         }
     }
 }
+
+impl Bus {
+    
+}

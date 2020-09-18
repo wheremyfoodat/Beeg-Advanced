@@ -46,7 +46,7 @@ impl CPU {
         let affectFlags = s && rdIndex != 15;
         debug_assert!(!(s && rdIndex == 15));
 
-        let mut rn = self.getGPR(rnIndex);
+        let rn = self.getGPR(rnIndex);
         let mut rm = self.getGPR(rmIndex);
 
         self.gprs[15] -= 4; // Undo what we did in the first line

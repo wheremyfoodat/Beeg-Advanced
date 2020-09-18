@@ -8,8 +8,7 @@ use crate::isBitSet;
 
 enum LoadStoreAddrModes {
     ImmediateOffset,
-    RegisterOffset,
-    ScaledRegister
+    RegisterOffset
 }
 
 impl CPU {
@@ -68,7 +67,7 @@ impl CPU {
 
     
     pub fn ARM_handleMiscLoadStores (&mut self, bus: &mut Bus, instruction: u32) {
-        let mut address = 0_u32;
+        let mut address: u32;
         let isLoad = isBitSet!(instruction, 20);
         let signExtend = isBitSet!(instruction, 6);
         let isHalfword = isBitSet!(instruction, 5);
@@ -135,7 +134,7 @@ impl CPU {
         
         
         let mut address = rn;
-        let mut offset = 0_u32;
+        let mut offset: u32;
 
         let addToBase = isBitSet!(instruction, 23);
         let preIndexing = isBitSet!(instruction, 24);
@@ -196,7 +195,7 @@ impl CPU {
         let rdIndex = (instruction >> 12) & 0xF;
         let rn = self.getGPR(rnIndex);
 
-        let mut offset = 0_u32;
+        let mut offset: u32;
         let mut address = rn;
 
         let addToBase = isBitSet!(instruction, 23);

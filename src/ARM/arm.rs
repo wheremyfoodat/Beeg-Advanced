@@ -1,12 +1,6 @@
 use crate::bus::Bus;
 use crate::cpu::CPU;
-
-extern crate sfml;
-use sfml::graphics::*;
-use sfml::window::*;
-
 use crate::isBitSet;
-
 
 impl CPU {
     pub fn executeARMInstruction (&mut self, bus: &mut Bus, instruction: u32) {
@@ -15,7 +9,7 @@ impl CPU {
         }
 
         let lutIndex = (((instruction >> 4) & 0xF) | ((instruction >> 16) & 0xFF0)) as usize;
-        self.armLUT[lutIndex](self, bus, instruction);
+        self.armLUT[lutIndex](self, bus, instruction); // Call the relevant function depending on bits 4-7 and 20-27 of the instr
     }
 
     pub fn ARM_handleUndefined (&mut self, bus: &mut Bus, instruction: u32) {

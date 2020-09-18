@@ -258,7 +258,7 @@ impl Bus {
             0x4000102 | 0x4000106 | 0x400010A | 0x400010E => { println!("Read from Timer control regs! (Unimpl)"); 0}
             0x4000130 => self.joypad.keyinput.getRaw(),
             0x4000200 => self.ie,
-            0x4000202 => { println!("Read from IF which is semi-stubbed!"); self.ppu.interruptFlags}
+            0x4000202 => self.ppu.interruptFlags,
             0x4000204 => self.waitcnt,
             0x4000208 => self.ime as u16,
             _ => {println!("Unimplemented 16-bit read from MMIO address {:08X}", address); 0}
@@ -315,6 +315,28 @@ impl Bus {
         match address {
             0x4000000 => self.ppu.dispcnt.setRaw(val as u16),
             0x4000080 => println!("Wrote to SOUNDCNT!"),
+
+            // DMA SAD registers
+            
+            0x40000B0 => self.dmaChannels[0].sourceAddr = val,
+            0x40000BC => self.dmaChannels[1].sourceAddr = val,
+            0x40000C8 => self.dmaChannels[2].sourceAddr = val,
+            0x40000D4 => self.dmaChannels[3].sourceAddr = val,
+
+            // DMA DAD registers
+
+            0x40000B4 => self.dmaChannels[0].destAddr = val,
+            0x40000C0 => self.dmaChannels[1].destAddr = val,
+            0x40000CC => self.dmaChannels[2].destAddr = val,
+            0x40000D8 => self.dmaChannels[3].destAddr = val,
+
+            // DMA word count registers
+
+            0x40000B8 => self.dmaChannels[0].wordCount = val as u16,
+            0x40000C4 => self.dmaChannels[1].wordCount = val as u16,
+            0x40000D0 => self.dmaChannels[2].wordCount = val as u16,
+            0x40000DC => self.dmaChannels[3].wordCount = val as u16,
+
             0x4000088 => { self.soundbiasStub = val; println!("Wrote to SOUNDBIAS!") },
             0x4000200 => {
                 self.ie = val as u16;
