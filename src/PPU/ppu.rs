@@ -22,8 +22,8 @@ pub struct PPU {
     pub vcount: u16, // Only lower 8 bits are used on the GBA
 
     pub paletteRAM: [u8; 1024],
-    pub VRAM: [u8; 96 * 1024],
-    pub OAM:  [u8; 1024],
+    pub VRAM: Vec<u8>,
+    pub OAM:  Vec<u8>,
 
     mode: PPUModes,
     cycles: u32,
@@ -45,8 +45,8 @@ impl PPU {
             vcount: 0,
             
             paletteRAM: [0; 1024],
-            VRAM: [0; 96 * 1024],
-            OAM:  [0; 1024],
+            VRAM: vec![0; 96 * 1024],
+            OAM:  vec![0; 1024],
 
             pixels: [0; 240 * 160 * 4],
             mode: PPUModes::Rendering,

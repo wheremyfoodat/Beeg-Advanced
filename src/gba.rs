@@ -48,9 +48,9 @@ impl GBA {
             }
         }
 
-        if Key::is_pressed(Key::D) {
-            self.cpu.logState();
-        }
+        //if Key::is_pressed(Key::D) {
+        //    self.cpu.logState();
+        //}
 
         self.bus.ppu.isFrameReady = false;
         let sprite: Sprite;

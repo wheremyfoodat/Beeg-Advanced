@@ -76,6 +76,11 @@ impl Bus {
             }
 
             4 => val = self.readIO16(address),
+
+            7 => {
+                val = self.ppu.OAM[(address & 0x3FF) as usize] as u16;
+                val |= (self.ppu.OAM[((address + 1) & 0x3FF) as usize] as u16) << 8;
+            },
             
             8 | 9 => {
                     val = self.mem.ROM[(address - 0x8000000) as usize] as u16;
@@ -122,10 +127,10 @@ impl Bus {
             4 => val = self.readIO32(address),
 
             6 => {
-                val = self.ppu.VRAM[(address - 0x6000000) as usize] as u32;
-                val |= (self.ppu.VRAM[(address - 0x6000000 + 1) as usize] as u32) << 8;
-                val |= (self.ppu.VRAM[(address - 0x6000000 + 2) as usize] as u32) << 16;
-                val |= (self.ppu.VRAM[(address - 0x6000000 + 3) as usize] as u32) << 24;
+                val = self.ppu.VRAM[(address & 0x17FFF) as usize] as u32;
+                val |= (self.ppu.VRAM[((address + 1) & 0x17FFF) as usize] as u32) << 8;
+                val |= (self.ppu.VRAM[((address + 2) & 0x17FFF) as usize] as u32) << 16;
+                val |= (self.ppu.VRAM[((address + 3) & 0x17FFF) as usize] as u32) << 24;
             },
 
             7 => {
@@ -330,12 +335,32 @@ impl Bus {
             0x40000CC => self.dmaChannels[2].destAddr = val,
             0x40000D8 => self.dmaChannels[3].destAddr = val,
 
-            // DMA word count registers
+            // DMA word count registers. Doesn't handle DMACNT.
 
-            0x40000B8 => self.dmaChannels[0].wordCount = val as u16,
-            0x40000C4 => self.dmaChannels[1].wordCount = val as u16,
-            0x40000D0 => self.dmaChannels[2].wordCount = val as u16,
-            0x40000DC => self.dmaChannels[3].wordCount = val as u16,
+            0x40000B8 => {
+                self.dmaChannels[0].wordCount = val as u16;
+                self.dmaChannels[0].controlReg.setRaw((val >> 16) as u16);
+                println!("Wrote {:04X} to DMA0CNT!", val >> 16);
+                if (val >> 31) == 1 {self.fireDMA(0)}
+            }
+            0x40000C4 => {
+                self.dmaChannels[1].wordCount = val as u16;
+                self.dmaChannels[1].controlReg.setRaw((val >> 16) as u16);
+                println!("Wrote {:04X} to DMA1CNT!", val >> 16);
+                if (val >> 31) == 1 {self.fireDMA(1)}
+            }
+            0x40000D0 => {
+                self.dmaChannels[2].wordCount = val as u16;
+                self.dmaChannels[2].controlReg.setRaw((val >> 16) as u16);
+                println!("Wrote {:04X} to DMA2CNT!", val >> 16);
+                if (val >> 31) == 1 {self.fireDMA(2)}
+            }
+            0x40000DC => {
+                self.dmaChannels[3].wordCount = val as u16;
+                self.dmaChannels[3].controlReg.setRaw((val >> 16) as u16);
+                println!("Wrote {:04X} to DMA3CNT!", val >> 16);
+                if (val >> 31) == 1 {self.fireDMA(3)}
+            }
 
             0x4000088 => { self.soundbiasStub = val; println!("Wrote to SOUNDBIAS!") },
             0x4000200 => {

@@ -67,7 +67,7 @@ bitfield!{
     pub getDestAddrControl,   _     :    6, 5;  
     pub getSourceAddrControl, _     :    8, 7;         
     pub getRepeat,            _     :    9, 9;
-    pub getTransferType,      _     :    10, 10;
+    pub is32Bit,              _     :    10, 10;
     pub getGamepakDRQ,        _     :    11, 11;
     pub getDMAStartTiming,    _     :    13, 12;
     pub shouldFireIRQ,        _     :    14, 14;
