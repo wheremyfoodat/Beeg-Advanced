@@ -1,5 +1,6 @@
 use crate::bus::Bus;
 use crate::cpu::CPU;
+use crate::scheduler::EventTypes;
 
 #[macro_use]
 use crate::isBitSet;
@@ -24,6 +25,7 @@ impl CPU {
 
         if s && rdIndex == 15 {
             self.setCPSR(self.spsr.getRaw());
+            bus.scheduler.pushEvent(EventTypes::PollInterrupts, 0); // Since CPSR got updated, poll interrupts again
             //println!("IRQ/SWI return")
         }
 
@@ -52,6 +54,7 @@ impl CPU {
         self.gprs[15] -= 4; // Undo what we did in the first line
 
         if s && rdIndex == 15 {
+            bus.scheduler.pushEvent(EventTypes::PollInterrupts, 0); // Since CPSR got updated, poll interrupts again
             self.setCPSR(self.spsr.getRaw());
             //println!("IRQ/SWI return")
         }
@@ -87,6 +90,7 @@ impl CPU {
         }
 
         if s && rdIndex == 15 {
+            bus.scheduler.pushEvent(EventTypes::PollInterrupts, 0); // Since CPSR got updated, poll interrupts again
             self.setCPSR(self.spsr.getRaw());
             //println!("IRQ/SWI return")
         }

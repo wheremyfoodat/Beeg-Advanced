@@ -1,6 +1,6 @@
 use bitfield::*;
 use crate::bus::*;
-use crate::irqs;
+use crate::scheduler;
 
 bitfield!{
     pub struct PSR(u32);
@@ -115,7 +115,6 @@ impl CPU {
     }
 
     pub fn step (&mut self, bus: &mut Bus) {
-        self.pollInterrupts(bus);
         if self.isInARMState() {
             self.executeARMInstruction(bus, self.pipeline[0]);
         }
@@ -128,24 +127,17 @@ impl CPU {
     }
 
     pub fn advancePipeline(&mut self, bus: &Bus) {
-        let mode = match self.isInARMState() {
-            true => CPUStates::ARM,
-            false => CPUStates::Thumb
-        };
-
         self.pipeline[0] = self.pipeline[1];
         self.pipeline[1] = self.pipeline[2];
         
-        match mode {
-            CPUStates::ARM => {
+        if self.isInARMState() {
                 self.gprs[15] += 4;
                 self.pipeline[2] = bus.read32(self.getGPR(15));
-            },
+        }
 
-            CPUStates::Thumb => {
+        else {
                 self.gprs[15] += 2;
                 self.pipeline[2] = bus.read16(self.getGPR(15)) as u32;
-            }
         }
     }
 

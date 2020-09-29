@@ -1,5 +1,6 @@
 use crate::bus::Bus;
 use crate::cpu::CPU;
+use crate::scheduler::EventTypes;
 use crate::isBitSet;
 // TODO: implement remaining edge cases
 
@@ -15,6 +16,7 @@ impl CPU {
         if switchToUser {
             if isBitSet!(instruction, 15) {
                 todo!("LDM that loads r15 with S mode bit set, might be wrong!");
+                bus.scheduler.pushEvent(EventTypes::PollInterrupts, 0); // Since CPSR got updated, poll interrupts again
                 self.setCPSR(self.spsr.getRaw());   
             }
 

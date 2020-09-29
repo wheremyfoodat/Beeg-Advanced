@@ -1,14 +1,14 @@
 use crate::cpu::CPU;
 use crate::bus::Bus;
-extern crate sfml;
+
 use sfml::graphics::*;
-use sfml::window::*;
 use sfml::system::SfBox;
-   
+use crate::scheduler::*;
 
 pub struct GBA {
     cpu: CPU,
     bus: Bus,
+    isFrameReady: bool,
 
     texture: SfBox<Texture>
 }
@@ -18,21 +18,25 @@ impl GBA {
         GBA {
             cpu: CPU::new(),
             bus: Bus::new(romPath),
+            isFrameReady: false,
             texture: Texture::new(240, 160).unwrap()
         }
     }
 
     pub fn init(&mut self) {
         self.cpu.init(&self.bus);
+        self.bus.scheduler.pushEvent(EventTypes::HBlank, 960); // Add first HBlank event to the scheduler    
     }
 
     pub fn step(&mut self) {
         self.cpu.step(&mut self.bus);
-        self.bus.stepComponents(1);
+        self.advanceScheduler(1);
     }
 
     pub fn executeFrame (&mut self, window: &mut sfml::graphics::RenderWindow) {
-        while !self.bus.isFrameReady() {
+        self.isFrameReady = false;
+        
+        while !self.isFrameReady {
             self.step();
         }
 
@@ -40,19 +44,14 @@ impl GBA {
 
         // poll window events and render screen
         while let Some(event) = window.poll_event() {
-            if event == Event::Closed {
+            if event == sfml::window::Event::Closed {
                 //println!("Writing CPU log to disk\n");
                 //let mut file = File::create("CPULog.txt").unwrap();
                 //file.write_all(self.cpu.log.as_bytes());
                 std::process::exit(0);
             }
         }
-
-        //if Key::is_pressed(Key::D) {
-        //    self.cpu.logState();
-        //}
-
-        self.bus.ppu.isFrameReady = false;
+        
         let sprite: Sprite;
 
         unsafe {
@@ -63,5 +62,74 @@ impl GBA {
         // It's not necessary to clear the window since we're redrawing the whole thing anyways
         window.draw(&sprite);
         window.display();
+    }
+
+    fn advanceScheduler(&mut self, cycles: u64) {
+        self.bus.scheduler.currentTimestamp += cycles;
+
+        loop { // Check which events should be fired
+            let event = self.bus.scheduler.getNearestEvent();   
+            if event.endTimestamp <= self.bus.scheduler.currentTimestamp { // If the event should be fire it, fire, else exit the loop early  
+                self.bus.scheduler.removeEvent();
+                self.eventCallback(event.eventType, event.endTimestamp);
+            }
+       
+            else {
+              return;
+            }
+        }
+    }
+
+    fn eventCallback (&mut self, eventType: EventTypes, firedEventTimestamp: u64) {
+        match eventType {
+            EventTypes::PollInterrupts => self.cpu.pollInterrupts(&mut self.bus),
+            EventTypes::HBlank => { // TODO: Add HBlank DMA here
+                self.bus.ppu.isInHBlank = true;
+                if self.bus.ppu.dispstat.getHBlankIRQEnable() == 1 {
+                   self.bus.ppu.interruptFlags |= 0b10; // Request HBlank IRQ
+                   self.bus.scheduler.pushEvent(EventTypes::PollInterrupts, 0); // If an HBlank IRQ was requested, poll IRQs on the next instruction
+                }
+
+                if self.bus.ppu.vcount < 160 {
+                    self.bus.ppu.renderScanline();
+                }
+
+                self.bus.ppu.dispstat.setHBlankFlag(1);
+                self.bus.scheduler.pushEvent(EventTypes::EndOfLine, firedEventTimestamp + 272) // HBlank takes 272 cycles. TODO: Use constants
+            }
+
+            EventTypes::VBlank => {
+                self.isFrameReady = true;
+                self.bus.ppu.dispstat.setVBlankFlag(1);
+
+                if self.bus.ppu.dispstat.getVBlankIRQEnable() == 1 {
+                    self.bus.ppu.interruptFlags |= 1;
+                    self.bus.scheduler.pushEvent(EventTypes::PollInterrupts, 0)
+                }
+            }
+
+            EventTypes::EndOfLine => {
+                self.bus.ppu.vcount += 1;
+
+                self.bus.ppu.isInHBlank = false;
+                self.bus.ppu.dispstat.setHBlankFlag(0);
+
+                if self.bus.ppu.vcount == 160 { // If PPU is entering VBlank
+                    self.bus.scheduler.pushEvent(EventTypes::VBlank, 0); // Schedule VBlank
+                }
+
+                else if self.bus.ppu.vcount == 228 {
+                    self.bus.ppu.vcount = 0;
+                    self.bus.ppu.dispstat.setVBlankFlag(0);
+                }
+
+                if self.bus.ppu.compareLYC() { // If LY == LYC, schedule polling for interrupts
+                    self.bus.scheduler.pushEvent(EventTypes::PollInterrupts, 0);
+                }
+
+                self.bus.scheduler.pushEvent(EventTypes::HBlank, firedEventTimestamp + 960);
+            }
+            _ => panic!("unknown event!")
+        }
     }
 }

@@ -170,17 +170,22 @@ impl PPU {
         self.isFrameReady = true;
     }
 
-    pub fn compareLYC (&mut self) {
+    // Compare LY with LYC/VCounter, return true if an interrupt is to be scheduled.
+    pub fn compareLYC (&mut self) -> bool { 
         let lyc = self.dispstat.getLYC();
         if self.vcount == lyc {
             self.dispstat.setCoincidenceFlag(1);
             if self.dispstat.getLYCIRQEnable() == 1 {
                 self.interruptFlags |= 0b100;
+                return true;
             }
+
+            false
         }
 
         else {
             self.dispstat.setCoincidenceFlag(0);
+            false
         }
     }
 }

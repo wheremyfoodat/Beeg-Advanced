@@ -1,6 +1,9 @@
 #![warn(clippy::all)]
 #![allow(nonstandard_style)]
 
+extern crate sfml;
+extern  crate staticvec;
+
 pub mod gba;
 pub mod bus;
 pub mod cpu;
@@ -14,23 +17,23 @@ pub mod joypad;
 pub mod Thumb;
 pub mod barrelShifter;
 pub mod helpers;
-//mod frontend;
+pub mod scheduler;
 
 use gba::GBA;
-extern crate sfml;
 use sfml::graphics::*;
 use sfml::window::*; // TODO: Not import the entire thing
 
 fn main() {
-    let gameName = "Pokemon Pinball";
-    let mut gba = GBA::new(format!("ROMs/{}.gba", gameName).to_string());
+    let gameName = "irq_demo";
+    let mut gba = GBA::new(format!("ROMs/{}.gba", gameName));
     gba.init();
 
     let mut window = RenderWindow::new(VideoMode::new(240, 160, 32),
                             &format!("Beeg Advanced: {}", gameName),
                             Style::RESIZE | Style::CLOSE,
                   &ContextSettings::default());
-
+    window.set_framerate_limit(0);
+    
     loop {
         gba.executeFrame(&mut window);
     }

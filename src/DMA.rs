@@ -34,7 +34,7 @@ impl Bus {
 
         assert!(controlReg.getRepeat() == 0);
         assert!(controlReg.shouldFireIRQ() == 0);
-        assert!(destAddrControl != 3);
+        assert!(srcAddrControl != 3);
         assert!(controlReg.getDMAStartTiming() == 0);
         assert!(wordCount < 0x4000 || channel == 3);
         assert!(wordCount != 0);

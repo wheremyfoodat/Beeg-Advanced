@@ -4,12 +4,14 @@ use crate::mem::*;
 use crate::PPU::ppu;
 use crate::DMA::DMAChannel;
 use crate::joypad::Joypad;
+use crate::scheduler::*;
 
 pub struct Bus {
     mem: Memory,
     pub ppu: PPU,
     pub joypad: Joypad,
     pub dmaChannels: [DMAChannel; 4],
+    pub scheduler: Scheduler,
 
     // some MMIO registers that don't really fit in the peripheral structs
     // interrupt registers
@@ -29,6 +31,7 @@ impl Bus {
             ppu: PPU::new(),
             joypad: Joypad::new(),
             dmaChannels: [DMAChannel::new(), DMAChannel::new(), DMAChannel::new(), DMAChannel::new()],
+            scheduler: Scheduler::new(),
 
             ime: false,
             ie: 0,
@@ -38,7 +41,7 @@ impl Bus {
         }
     }
 
-    pub fn stepComponents(&mut self, cycles: u32) {
+    pub fn stepComponents(&mut self, cycles: u32) { 
         self.ppu.step(cycles);
     }
 
@@ -49,7 +52,7 @@ impl Bus {
             3 => self.mem.iWRAM[(address & 0x7FFF) as usize],
             4 => self.readIO8(address),
             6 => self.ppu.VRAM[(address - 0x6000000) as usize],
-            8 => self.mem.ROM[(address - 0x8000000) as usize],
+            8 | 9 => self.mem.ROM[(address - 0x8000000) as usize],
             0xE => self.mem.SRAM[(address & 0xFFFF) as usize],
             _ => todo!("Unimplemented 8-bit read at address {:08X}", address)
         }
@@ -248,9 +251,10 @@ impl Bus {
 
     pub fn readIO8 (& self, address: u32) -> u8 {
         match address {
+            0x4000000 => self.ppu.dispcnt.getRaw() as u8,
             0x4000006 => self.ppu.vcount as u8,
             0x4000089 => (self.soundbiasStub >> 8) as u8,
-            _ => {panic!("Unimplemented 8-bit read from MMIO address {:08X}", address); 0}
+            _ => {panic!("Unimplemented 8-bit read from MMIO address {:08X}", address);}
         }
     }
 
@@ -275,6 +279,7 @@ impl Bus {
             0x4000000 => self.ppu.dispcnt.getRaw() as u32,
             0x4000004 => (self.ppu.dispstat.getRaw() as u32) | ((self.ppu.vcount as u32) << 16),
             0x4000200 => ((self.ppu.interruptFlags as u32) << 16) | self.ie as u32,
+            0x4000208 => self.ime as u32,
             _ => {println!("Unimplemented 32-bit read from MMIO address {:08X}", address); 0}
         }
     }
@@ -285,6 +290,7 @@ impl Bus {
             0x4000084 => println!("Wrote to SOUNDCNT_X!"),
             0x4000208 => {
                 self.ime = (val & 1) != 0;
+                self.scheduler.pushEvent(EventTypes::PollInterrupts, 0); // Schedule polling interrupts
             }
             0x4000301 => {}, //println!("Wrote to HALTCNT"),
             _ => println!("Unimplemented 8-bit write to IO address {:08X}\n", address)
@@ -308,10 +314,16 @@ impl Bus {
             0x400001A => self.ppu.bg_vofs[2].setRaw(val),
             0x400001E => self.ppu.bg_vofs[3].setRaw(val),
             0x4000088 => { self.soundbiasStub = (val as u32 | self.soundbiasStub & 0xFFFF0000); println!("Wrote to SOUNDBIAS!") },
-            0x4000200 => { self.ie = val; } //println!("Wrote {:02X} to IE!", val) }
-            0x4000202 => { self.ppu.interruptFlags &= (!val); }//println!("Wrote to IF!")}
+            0x4000200 => { 
+                self.ie = val; 
+                self.scheduler.pushEvent(EventTypes::PollInterrupts, 0); // Schedule polling interrupts
+            }
+            0x4000202 => self.ppu.interruptFlags &= !val,
             0x4000204 => self.waitcnt = val,
-            0x4000208 => { self.ime = (val & 1) != 0}
+            0x4000208 => { 
+                self.ime = (val & 1) == 1;
+                self.scheduler.pushEvent(EventTypes::PollInterrupts, 0); // Schedule polling interrupts
+            }
             _ => println!("16-bit write to unimplemented IO address {:08X}\n", address)
         }
     }
@@ -366,15 +378,13 @@ impl Bus {
             0x4000200 => {
                 self.ie = val as u16;
                 self.ppu.interruptFlags &= !((val >> 16) as u16);
+                self.scheduler.pushEvent(EventTypes::PollInterrupts, 0); // Schedule polling interrupts
             }
             0x4000208 => {
                 self.ime = (val & 1) == 1;
+                self.scheduler.pushEvent(EventTypes::PollInterrupts, 0); // Schedule polling interrupts
             }
             _ => println!("Unimplemented 32-bit write to IO address {:08X}\n", address)
         }
-    }
-
-    pub fn isFrameReady (&self) -> bool {
-        self.ppu.isFrameReady
     }
 }
