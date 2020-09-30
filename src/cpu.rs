@@ -114,7 +114,7 @@ impl CPU {
         self.cpsr.isThumb() == 0
     }
 
-    pub fn step (&mut self, bus: &mut Bus) {
+    pub fn step (&mut self, bus: &mut Bus) {    
         if self.isInARMState() {
             self.executeARMInstruction(bus, self.pipeline[0]);
         }

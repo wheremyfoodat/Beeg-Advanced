@@ -130,10 +130,10 @@ impl Bus {
             4 => val = self.readIO32(address),
 
             6 => {
-                val = self.ppu.VRAM[(address & 0x17FFF) as usize] as u32;
-                val |= (self.ppu.VRAM[((address + 1) & 0x17FFF) as usize] as u32) << 8;
-                val |= (self.ppu.VRAM[((address + 2) & 0x17FFF) as usize] as u32) << 16;
-                val |= (self.ppu.VRAM[((address + 3) & 0x17FFF) as usize] as u32) << 24;
+                val = self.ppu.VRAM[(address - 0x6000000) as usize] as u32;
+                val |= (self.ppu.VRAM[(address - 0x6000000 + 1) as usize] as u32) << 8;
+                val |= (self.ppu.VRAM[(address - 0x6000000 + 2) as usize] as u32) << 16;
+                val |= (self.ppu.VRAM[(address - 0x6000000 + 3) as usize] as u32) << 24;
             },
 
             7 => {
@@ -303,6 +303,7 @@ impl Bus {
             0x4000004 => {
                 self.ppu.dispstat.setRaw(val & 0xFF38);
                 self.ppu.compareLYC();
+                self.scheduler.pushEvent(EventTypes::PollInterrupts, 0)
             },
             0x4000008 => self.ppu.bg_controls[0].setRaw(val),
             0x4000010 => self.ppu.bg_hofs[0].setRaw(val),
