@@ -3,7 +3,9 @@ use crate::bus::Bus;
 
 impl CPU {
     pub fn pollInterrupts (&mut self, bus: &mut Bus) {
-        if self.cpsr.getIRQDisable() == 0 && bus.ime && ((bus.ie & bus.ppu.interruptFlags as u16) != 0) { // TODO: Handle writes to IF and misc interrupts
+        let interrupt_requests = bus.getIF();
+
+        if self.cpsr.getIRQDisable() == 0 && bus.ime && ((bus.ie & interrupt_requests as u16) != 0) { // TODO: Handle writes to IF and misc interrupts
             let cpsr = self.cpsr.getRaw();
             let lr: u32;
 

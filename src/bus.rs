@@ -17,7 +17,7 @@ pub struct Bus {
     // interrupt registers
     pub ime: bool,  // interrupt master enable register
     pub ie: u16,    // interrupt enable register
-    pub interrupt_requests : u16, // IF (interrupt request) register
+    pub dma_irq_requests: u16, 
 
     // stubbed MMIO registers that I need for the BIOS but haven't properly implemented yet
     soundbiasStub: u32,
@@ -35,14 +35,10 @@ impl Bus {
 
             ime: false,
             ie: 0,
-            interrupt_requests: 0,
+            dma_irq_requests: 0, 
             soundbiasStub: 0,
             waitcnt: 0
         }
-    }
-
-    pub fn stepComponents(&mut self, cycles: u32) { 
-        self.ppu.step(cycles);
     }
 
     pub fn read8 (&self, address: u32) -> u8 {
@@ -79,6 +75,16 @@ impl Bus {
             }
 
             4 => val = self.readIO16(address),
+
+            5 => {
+                val = self.ppu.paletteRAM[(address & 0x3FF) as usize] as u16;
+                val |= (self.ppu.paletteRAM[((address + 1) & 0x3FF) as usize] as u16) << 8;
+            },
+
+            6 => {
+                val = self.ppu.VRAM[(address - 0x6000000) as usize] as u16;
+                val |= (self.ppu.VRAM[((address + 1) - 0x6000000) as usize] as u16) << 8;
+            },
 
             7 => {
                 val = self.ppu.OAM[(address & 0x3FF) as usize] as u16;
@@ -172,6 +178,8 @@ impl Bus {
         debug_assert!((address & 1) == 0); 
 
         match (address >> 24) & 0xF { // these 4 bits show us which memory range the addr belongs to
+            0 => {},
+
             2 => {
                 self.mem.eWRAM[(address & 0x3FFFF) as usize] = (val & 0xFF) as u8;
                 self.mem.eWRAM[((address + 1) & 0x3FFFF) as usize] = (val >> 8) as u8;
@@ -245,7 +253,7 @@ impl Bus {
 
             4 => self.writeIO32(address, val),
             8 => println!("32-bit write to ROM at {:08X}", address),
-            _=> println!("32-bit write to unimplemented mem addr {:08X}\n", address)
+            _ => println!("32-bit write to unimplemented mem addr {:08X}\n", address)
         }
     }
 
@@ -254,7 +262,7 @@ impl Bus {
             0x4000000 => self.ppu.dispcnt.getRaw() as u8,
             0x4000006 => self.ppu.vcount as u8,
             0x4000089 => (self.soundbiasStub >> 8) as u8,
-            _ => {panic!("Unimplemented 8-bit read from MMIO address {:08X}", address);}
+            _ => {println!("Unimplemented 8-bit read from MMIO address {:08X}", address); 0xFF}
         }
     }
 
@@ -267,7 +275,7 @@ impl Bus {
             0x4000102 | 0x4000106 | 0x400010A | 0x400010E => { println!("Read from Timer control regs! (Unimpl)"); 0}
             0x4000130 => self.joypad.keyinput.getRaw(),
             0x4000200 => self.ie,
-            0x4000202 => self.ppu.interruptFlags,
+            0x4000202 => self.getIF(),
             0x4000204 => self.waitcnt,
             0x4000208 => self.ime as u16,
             _ => {println!("Unimplemented 16-bit read from MMIO address {:08X}", address); 0}
@@ -278,7 +286,7 @@ impl Bus {
         match address {
             0x4000000 => self.ppu.dispcnt.getRaw() as u32,
             0x4000004 => (self.ppu.dispstat.getRaw() as u32) | ((self.ppu.vcount as u32) << 16),
-            0x4000200 => ((self.ppu.interruptFlags as u32) << 16) | self.ie as u32,
+            0x4000200 => ((self.getIF() as u32) << 16) | self.ie as u32,
             0x4000208 => self.ime as u32,
             _ => {println!("Unimplemented 32-bit read from MMIO address {:08X}", address); 0}
         }
@@ -305,7 +313,11 @@ impl Bus {
                 self.ppu.compareLYC();
                 self.scheduler.pushEvent(EventTypes::PollInterrupts, 0)
             },
+
             0x4000008 => self.ppu.bg_controls[0].setRaw(val),
+            0x400000A => self.ppu.bg_controls[1].setRaw(val),
+            0x400000C => self.ppu.bg_controls[2].setRaw(val),
+            0x400000E => self.ppu.bg_controls[3].setRaw(val),
             0x4000010 => self.ppu.bg_hofs[0].setRaw(val),
             0x4000014 => self.ppu.bg_hofs[1].setRaw(val),
             0x4000018 => self.ppu.bg_hofs[2].setRaw(val),
@@ -319,13 +331,13 @@ impl Bus {
                 self.ie = val; 
                 self.scheduler.pushEvent(EventTypes::PollInterrupts, 0); // Schedule polling interrupts
             }
-            0x4000202 => self.ppu.interruptFlags &= !val,
+            0x4000202 => self.setIF(self.getIF() & !val),
             0x4000204 => self.waitcnt = val,
             0x4000208 => { 
                 self.ime = (val & 1) == 1;
                 self.scheduler.pushEvent(EventTypes::PollInterrupts, 0); // Schedule polling interrupts
             }
-            _ => println!("16-bit write to unimplemented IO address {:08X}\n", address)
+            _ => {}//println!("16-bit write to unimplemented IO address {:08X}\n", address)
         }
     }
 
@@ -348,44 +360,33 @@ impl Bus {
             0x40000CC => self.dmaChannels[2].destAddr = val,
             0x40000D8 => self.dmaChannels[3].destAddr = val,
 
-            // DMA word count registers. Doesn't handle DMACNT.
+            // DMACNT
 
-            0x40000B8 => {
-                self.dmaChannels[0].wordCount = val as u16;
-                self.dmaChannels[0].controlReg.setRaw((val >> 16) as u16);
-                println!("Wrote {:04X} to DMA0CNT!", val >> 16);
-                if (val >> 31) == 1 {self.fireDMA(0)}
-            }
-            0x40000C4 => {
-                self.dmaChannels[1].wordCount = val as u16;
-                self.dmaChannels[1].controlReg.setRaw((val >> 16) as u16);
-                println!("Wrote {:04X} to DMA1CNT!", val >> 16);
-                if (val >> 31) == 1 {self.fireDMA(1)}
-            }
-            0x40000D0 => {
-                self.dmaChannels[2].wordCount = val as u16;
-                self.dmaChannels[2].controlReg.setRaw((val >> 16) as u16);
-                println!("Wrote {:04X} to DMA2CNT!", val >> 16);
-                if (val >> 31) == 1 {self.fireDMA(2)}
-            }
-            0x40000DC => {
-                self.dmaChannels[3].wordCount = val as u16;
-                self.dmaChannels[3].controlReg.setRaw((val >> 16) as u16);
-                println!("Wrote {:04X} to DMA3CNT!", val >> 16);
-                if (val >> 31) == 1 {self.fireDMA(3)}
-            }
+            0x40000B8 => self.writeDMACNT32(0, val),
+            0x40000C4 => self.writeDMACNT32(1, val),
+            0x40000D0 => self.writeDMACNT32(2, val),
+            0x40000DC => self.writeDMACNT32(3, val),
 
             0x4000088 => { self.soundbiasStub = val; println!("Wrote to SOUNDBIAS!") },
             0x4000200 => {
                 self.ie = val as u16;
-                self.ppu.interruptFlags &= !((val >> 16) as u16);
-                self.scheduler.pushEvent(EventTypes::PollInterrupts, 0); // Schedule polling interrupts
+                self.setIF(self.getIF() & !(val as u16));
+                if self.ime {self.scheduler.pushEvent(EventTypes::PollInterrupts, 0)}
             }
             0x4000208 => {
                 self.ime = (val & 1) == 1;
-                self.scheduler.pushEvent(EventTypes::PollInterrupts, 0); // Schedule polling interrupts
+                if self.ime {self.scheduler.pushEvent(EventTypes::PollInterrupts, 0)}
             }
             _ => println!("Unimplemented 32-bit write to IO address {:08X}\n", address)
         }
+    }
+
+    pub fn getIF(&self) -> u16 {
+        self.dma_irq_requests | self.ppu.interruptFlags
+    }
+
+    pub fn setIF(&mut self, val: u16) {
+        self.ppu.interruptFlags = val & 7;
+        self.dma_irq_requests = (val >> 8) & 0xF;
     }
 }

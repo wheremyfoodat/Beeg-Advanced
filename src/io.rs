@@ -62,14 +62,15 @@ bitfield!{
 }
 
 bitfield!{
+    #[derive(Copy, Clone)]
     pub struct DMACNT(u16);
     pub getRaw,               setRaw:   15, 0;
     pub getDestAddrControl,   _     :    6, 5;  
     pub getSourceAddrControl, _     :    8, 7;         
-    pub getRepeat,            _     :    9, 9;
-    pub is32Bit,              _     :    10, 10;
-    pub getGamepakDRQ,        _     :    11, 11;
+    pub getRepeat,            _     :    9;
+    pub is32Bit,              _     :    10;
+    pub getGamepakDRQ,        _     :    11;
     pub getDMAStartTiming,    _     :    13, 12;
-    pub shouldFireIRQ,        _     :    14, 14;
-    pub isDMAEnabled,         _     :    15, 15; 
+    pub shouldFireIRQ,        _     :    14;
+    pub isDMAEnabled,         _     :    15; 
 }

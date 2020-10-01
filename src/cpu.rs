@@ -1,6 +1,5 @@
 use bitfield::*;
 use crate::bus::*;
-use crate::scheduler;
 
 bitfield!{
     pub struct PSR(u32);
@@ -102,9 +101,20 @@ impl CPU {
     pub fn setGPR(&mut self, gpr: u32, val: u32, bus: &mut Bus) {
         match gpr {
             15 => {
-                if self.isInARMState() { self.gprs[15] = (val - 4) & !3 }
-                else {self.gprs[15] = (val - 2) & !1}
-                self.refillPipeline(bus);
+                if self.isInARMState() { // TODO: Fix this hack-ish pipeline thing
+                    self.gprs[15] = (val - 4) & !3;
+                    self.pipeline[1] = bus.read32(self.gprs[15] + 4); 
+                    self.pipeline[2] = bus.read32(self.gprs[15] + 8);
+
+                    self.gprs[15] += 8;
+                }
+                else {
+                    self.gprs[15] = (val - 2) & !1;
+                    self.pipeline[1] = bus.read16(self.gprs[15] + 2) as u32; 
+                    self.pipeline[2] = bus.read16(self.gprs[15] + 4) as u32;
+
+                    self.gprs[15] += 4;
+                }
             }
             _ => self.gprs[gpr as usize] = val
         }

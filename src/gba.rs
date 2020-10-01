@@ -1,5 +1,6 @@
 use crate::cpu::CPU;
 use crate::bus::Bus;
+use crate::DMA::DMAChannelStatus;
 
 use sfml::graphics::*;
 use sfml::system::SfBox;
@@ -84,13 +85,13 @@ impl GBA {
         match eventType {
             EventTypes::PollInterrupts => self.cpu.pollInterrupts(&mut self.bus),
             EventTypes::HBlank => { // TODO: Add HBlank DMA here
-                self.bus.ppu.isInHBlank = true;
                 if self.bus.ppu.dispstat.getHBlankIRQEnable() == 1 {
                    self.bus.ppu.interruptFlags |= 0b10; // Request HBlank IRQ
                    self.bus.scheduler.pushEvent(EventTypes::PollInterrupts, 0); // If an HBlank IRQ was requested, poll IRQs on the next instruction
                 }
 
                 if self.bus.ppu.vcount < 160 {
+                    self.bus.pollDMAs(DMAChannelStatus::HBlank); // See if there's any HBlank-triggered DMAs to fire. HBlank DMAs DO NOT fire during VBlank
                     self.bus.ppu.renderScanline();
                 }
 
@@ -106,12 +107,12 @@ impl GBA {
                     self.bus.ppu.interruptFlags |= 1;
                     self.bus.scheduler.pushEvent(EventTypes::PollInterrupts, 0)
                 }
+
+                self.bus.pollDMAs(DMAChannelStatus::VBlank); // See if there's any VBlank-triggered DMAs to fire
             }
 
             EventTypes::EndOfLine => {
                 self.bus.ppu.vcount += 1;
-
-                self.bus.ppu.isInHBlank = false;
                 self.bus.ppu.dispstat.setHBlankFlag(0);
 
                 if self.bus.ppu.vcount == 160 { // If PPU is entering VBlank

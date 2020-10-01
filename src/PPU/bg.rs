@@ -4,18 +4,38 @@ use crate::helpers::get8BitColor;
 use crate::isBitSet;
 
 impl PPU {
-    // TODO: Add support for layers other than 0
-    pub fn renderMode0 (&mut self, mapDataBase: u32, tileDataBase: u32, is8bpp: bool) {
-        self.bufferIndex = self.vcount as usize * 240 * 4;
+    
+    pub fn renderMode0(&mut self) {
+        self.renderNonAffineBG(3);
+        self.renderNonAffineBG(2);
+        self.renderNonAffineBG(1);
+        self.renderNonAffineBG(0);
+    }
+
+    pub fn renderNonAffineBG (&mut self, bgNum: usize) {
         
-        let y = self.vcount + self.bg_vofs[0].getOffset();
-        let hofs = self.bg_hofs[0].getOffset() as u32;
-        let bg_size = self.bg_controls[0].getSize();
+        if self.dispcnt.getRaw() & (1 << (8 + bgNum)) == 0 { // If the background is disabled, exit
+            return;
+        }
+
+        let bgcnt = &self.bg_controls[bgNum];
+        let tileDataBase = (bgcnt.getTileDataBase() as u32) << 14;
+        let mapDataBase = (bgcnt.getMapDataBase() as u32) << 11;
+        let is8bpp = bgcnt.getBitDepth() == 1;
+
+        let y = self.vcount + self.bg_vofs[bgNum].getOffset();
+        let hofs = self.bg_hofs[bgNum].getOffset() as u32;
+        let bg_size = self.bg_controls[bgNum].getSize();
 
         let mapStart = mapDataBase + ((y as u32 >> 3) & 31) * 64; // & 31 => wrap around the 32x32 tile map (TODO: add big map support)
 
         for x in 0..240 {
-            let x_coord = x + hofs;
+            
+            if self.currentLine[x] != 0 { // If the pixel has already been drawn over by a higher prio BG, skip it
+                continue
+            }
+
+            let x_coord = x as u32 + hofs;
             let mut tile_x = x_coord & 7;
             let mut tile_y = y & 7;
             let mut mapAddr = mapStart + (((x_coord >> 3) & 31) << 1);
@@ -27,7 +47,7 @@ impl PPU {
                         mapAddr += 0x800;
                     }
                 }
-                _ => panic!("Unimplemented BG size for mode 0!\n")
+                _ => panic!("Unimplemented BG size for mode 0! Size: {}\n", bg_size)
             }
 
             let mapEntry = self.readVRAM16(mapAddr);
@@ -61,32 +81,16 @@ impl PPU {
                 }
             }
 
-            let palette = self.readPalette16(pixel);
-
-            self.pixels[self.bufferIndex] = get8BitColor((palette & 0x1F) as u8);          // red
-            self.pixels[self.bufferIndex+1] = get8BitColor(((palette >> 5) & 0x1F) as u8); // green
-            self.pixels[self.bufferIndex+2] = get8BitColor(((palette >> 10) & 0x1F) as u8); // blue
-            self.pixels[self.bufferIndex+3] = 255; // alpha (always opaque)
-
-            self.bufferIndex += 4;
+            self.currentLine[x as usize] = pixel;
         }
     }
 
     // simple stub for AW
     pub fn renderMode4 (&mut self) {
-        self.bufferIndex = self.vcount as usize * 240 * 4;
         let mut vramIndex = (self.vcount * 240) as usize;
 
         for x in 0..240 {
-            let palIndex = self.VRAM[vramIndex];
-            let palEntry = self.readPalette16(palIndex); // palettes store colors as BGR555
-                
-            self.pixels[self.bufferIndex] = get8BitColor((palEntry & 0x1F) as u8);          // red
-            self.pixels[self.bufferIndex+1] = get8BitColor(((palEntry >> 5) & 0x1F) as u8); // green
-            self.pixels[self.bufferIndex+2] = get8BitColor(((palEntry >> 10) & 0x1F) as u8); // blue
-            self.pixels[self.bufferIndex+3] = 255;
-
-            self.bufferIndex += 4;
+            self.currentLine[x] = self.VRAM[vramIndex];
             vramIndex += 1;
         }
     }

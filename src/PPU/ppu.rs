@@ -1,5 +1,5 @@
 use crate::io::{BGCNT, DISPSTAT, DISPCNT, BGOFS};
-use crate::bus::Bus;
+use crate::helpers::get8BitColor;
 
 const RENDERING_MODE_CYCLES: u32 = 960;
 const HBLANK_MODE_CYCLES: u32 = 272;
@@ -25,13 +25,9 @@ pub struct PPU {
     pub VRAM: Vec<u8>,
     pub OAM:  Vec<u8>,
 
-    mode: PPUModes,
-    cycles: u32,
-    pub bufferIndex: usize,
     pub pixels: [u8; HEIGHT * WIDTH * 4],
-    pub isFrameReady: bool,
-    pub isInHBlank: bool, // For HBlank-in-vblank mode
-    pub interruptFlags: u16
+    pub interruptFlags: u16,
+    pub currentLine: [u8; WIDTH] // Palette indices for each pixel of the line. Used for multiple BG rendering
 }
 
 impl PPU {
@@ -49,98 +45,9 @@ impl PPU {
             OAM:  vec![0; 1024],
 
             pixels: [0; 240 * 160 * 4],
-            mode: PPUModes::Rendering,
-            cycles: 0,
-            bufferIndex: 0,
-            isFrameReady: false,
-            isInHBlank: false,
-            interruptFlags: 0
-        }
-    }
+            interruptFlags: 0,
 
-    pub fn step(&mut self, cycles: u32) {
-        self.cycles += cycles;
-        
-        match self.mode {
-            PPUModes::Rendering => {
-                if self.cycles >= RENDERING_MODE_CYCLES {
-                    self.cycles -= RENDERING_MODE_CYCLES;
-                    self.switchMode(PPUModes::HBlank);
-                }
-            }
-
-            PPUModes::HBlank => {
-                if self.cycles >= HBLANK_MODE_CYCLES {
-                    self.cycles -= HBLANK_MODE_CYCLES;
-                    self.vcount += 1;
-                    self.compareLYC();
-
-                    if self.vcount == 160 {
-                        self.switchMode(PPUModes::VBlank)
-                    }
-
-                    else {
-                        self.switchMode(PPUModes::Rendering);
-                    }
-                }
-            }
-
-            PPUModes::VBlank => {
-                if self.cycles >= HBLANK_MODE_CYCLES {
-                    if !self.isInHBlank && self.dispstat.getHBlankIRQEnable() == 1{ // Handle "HBlank in VBlank mode"
-                        self.interruptFlags |= 0b10; // Request HBlank IRQ
-                    }
-
-                    self.isInHBlank = true;
-                    
-                    self.dispstat.setHBlankFlag(1);
-                    if self.cycles >= CYCLES_PER_LINE {
-                        self.cycles -= CYCLES_PER_LINE;
-                        self.vcount += 1;
-                        self.isInHBlank = false;
-
-                        self.dispstat.setHBlankFlag(0);
-                        if self.vcount == 228 {
-                            self.vcount = 0;
-                            self.switchMode(PPUModes::Rendering);
-                        }
-
-                        self.compareLYC();
-                    }
-                }
-            }
-        }
-    }
-
-    pub fn switchMode(&mut self, newMode: PPUModes) {
-        self.mode = newMode;
-        match self.mode {
-            PPUModes::Rendering => {
-                self.dispstat.setHBlankFlag(0);
-                self.dispstat.setVBlankFlag(0);
-                self.isInHBlank = false;
-            }
-
-            PPUModes::HBlank => {
-                self.isInHBlank = true;
-                if self.dispstat.getHBlankIRQEnable() == 1 {
-                   self.interruptFlags |= 0b10; // Request HBlank IRQ
-                }
-
-                self.renderScanline();
-                self.dispstat.setHBlankFlag(1);
-            }
-
-            PPUModes::VBlank => {
-                if self.dispstat.getVBlankIRQEnable() == 1 {
-                    self.isInHBlank = false;
-                    self.interruptFlags |= 0b1; // Request VBlank IRQ
-                   // println!("Fired VBlank IRQ!")
-                }
-
-                self.renderBuffer();
-                self.dispstat.setVBlankFlag(1);
-            }
+            currentLine: [0; WIDTH],
         }
     }
 
@@ -153,21 +60,28 @@ impl PPU {
     }
 
     pub fn renderScanline(&mut self) {
-        // TODO: Handle multiple BGs
-        let bgcnt = &self.bg_controls[0];
-        let tileDataBase = (bgcnt.getTileDataBase() as u32) << 14;
-        let mapDataBase = (bgcnt.getMapDataBase() as u32) << 11;
-        let is8bpp = bgcnt.getBitDepth() == 1;
+        
+        for i in 0..WIDTH {
+            self.currentLine[i] = 0;
+        }
 
         match self.dispcnt.getMode() {
-            0 => self.renderMode0(mapDataBase, tileDataBase, is8bpp),
+            0 => self.renderMode0(),
             4 => self.renderMode4(),
             _ => panic!("Unimplemented BG mode {}", self.dispcnt.getMode())
         }
-    }
 
-    pub fn renderBuffer(&mut self) {
-        self.isFrameReady = true;
+        let mut bufferIndex = self.vcount as usize * WIDTH * 4;
+
+        for i in 0..WIDTH { // Copy the rendered line to the fb
+            let palette = self.readPalette16(self.currentLine[i]);
+
+            self.pixels[bufferIndex] = get8BitColor((palette & 0x1F) as u8);          // red
+            self.pixels[bufferIndex+1] = get8BitColor(((palette >> 5) & 0x1F) as u8); // green
+            self.pixels[bufferIndex+2] = get8BitColor(((palette >> 10) & 0x1F) as u8); // blue
+            self.pixels[bufferIndex+3] = 255; // alpha (always opaque)
+            bufferIndex += 4;
+        }
     }
 
     // Compare LY with LYC/VCounter, return true if an interrupt is to be scheduled.
