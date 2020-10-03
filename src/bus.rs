@@ -284,7 +284,7 @@ impl Bus {
             0x4000202 => self.getIF(),
             0x4000204 => self.waitcnt,
             0x4000208 => self.ime as u16,
-            _ => 0xFFFF//{println!("Unimplemented 16-bit read from MMIO address {:08X}", address); 0}
+            _ => 0//{println!("Unimplemented 16-bit read from MMIO address {:08X}", address); 0}
         }
     }
 
@@ -294,7 +294,7 @@ impl Bus {
             0x4000004 => (self.ppu.dispstat.getRaw() as u32) | ((self.ppu.vcount as u32) << 16),
             0x4000200 => ((self.getIF() as u32) << 16) | self.ie as u32,
             0x4000208 => self.ime as u32,
-            _ => 0xFFFFFFFF//{println!("Unimplemented 32-bit read from MMIO address {:08X}", address); 0}
+            _ => 0//{println!("Unimplemented 32-bit read from MMIO address {:08X}", address); 0}
         }
     }
 

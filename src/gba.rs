@@ -52,11 +52,7 @@ impl GBA {
                 std::process::exit(0);
             }
         }
-
-        if sfml::window::Key::is_pressed(sfml::window::Key::D) {
-            println!("PC: {:08X}", self.cpu.gprs[15]);
-        }
-        
+                
         let sprite: Sprite;
 
         unsafe {

@@ -64,7 +64,7 @@ impl PPU {
 
         match self.dispcnt.getMode() {
             0 => self.renderMode0(),
-            //1 => self.renderMode0(),
+            1 => self.renderMode0(),
             //3 => { self.renderMode3(); return; }, // Mode 3 isn't palette based, so we gotta early exit
             4 => self.renderMode4(),
             _ => panic!("Unimplemented BG mode {}", self.dispcnt.getMode())

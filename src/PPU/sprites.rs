@@ -108,6 +108,7 @@ impl PPU {
             let SPRITE_X= SPRITE_SIZES[sprite.size as usize][sprite.shape as usize][0];
             let SPRITE_Y = SPRITE_SIZES[sprite.size as usize][sprite.shape as usize][1];
             let linesSinceOBJStart = self.vcount as u32 - sprite.y_coord as u32;
+            
             assert!(!sprite.doubleSize); 
             //if sprite.doubleSize {
             //    SPRITE_X *= 2;
@@ -120,7 +121,7 @@ impl PPU {
                 if self.currentLine[x as usize] != 0 {continue}
 
                 let mut tile_x = i;
-                let mut tile_y = self.vcount - sprite.y_coord as u16;
+                let mut tile_y = linesSinceOBJStart as u16;
 
                 if sprite.h_flip {tile_x ^= SPRITE_X-1}
                 if sprite.v_flip {tile_y ^= SPRITE_Y-1}
@@ -147,8 +148,8 @@ impl PPU {
                     
                     tile_addr += ((tile_x as u32) >> 3) * 32;
                     
-                    if self.dispcnt.OBJ1DMapping() {
-                        tile_addr += (linesSinceOBJStart / 8) * 32 * (SPRITE_X as u32 >> 3);
+                    if self.dispcnt.OBJ1DMapping() { // TODO: Fix whatever in here breaks Mother 3
+                        tile_addr += (tile_y as u32 / 8) * 32 * (SPRITE_X as u32 >> 3);
                     }
 
                     else {
