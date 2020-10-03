@@ -35,7 +35,7 @@ impl Sprite {
             y_coord: attr0 as u8,
             x_coord,
 
-            tile_num: attr2 & 0x1FF,
+            tile_num: attr2 & 0x3FF,
             priority: (attr2 >> 10) & 3,
             palNum: ((attr2 >> 12) & 0xF) as u8,
 
