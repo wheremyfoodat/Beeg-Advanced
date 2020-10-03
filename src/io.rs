@@ -19,7 +19,7 @@ bitfield!{
     pub getMode,               _:        2, 0;
     pub getFrameSelect,        _:        4, 4;
     pub getHBlankIntervalFree, _:        5, 5;
-    pub getOBJVRAMMapping,     _:        6, 6; 
+    pub OBJ1DMapping,          _:        6; 
     pub getForcedBlank,        _:        7, 7;
     pub getBGEnableBits,       _:        11, 8;
     pub getOBJEnable,          _:        12, 12;

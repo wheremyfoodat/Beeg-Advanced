@@ -1,15 +1,31 @@
 use ppu::PPU;
 use crate::PPU::*;
-use crate::helpers::get8BitColor;
 use crate::isBitSet;
+use crate::helpers::get8BitColor;
 
 impl PPU {
     
     pub fn renderMode0(&mut self) {
-        self.renderNonAffineBG(3);
-        self.renderNonAffineBG(2);
-        self.renderNonAffineBG(1);
+        self.renderSprites();
         self.renderNonAffineBG(0);
+        self.renderNonAffineBG(1);
+        self.renderNonAffineBG(2);
+        self.renderNonAffineBG(3);
+    }
+
+    pub fn renderMode3(&mut self) { // Mode 3 stub
+        let mut mapDataBase = self.vcount as u32 * 240 * 2;
+        let mut bufferIndex = self.vcount as usize * 240 * 4;
+
+        for i in 0..240 {
+            let pixel = self.readVRAM16(mapDataBase);
+            self.pixels[bufferIndex] = get8BitColor((pixel & 0x1F) as u8); //R
+            self.pixels[bufferIndex + 1] = get8BitColor(((pixel >> 5) & 0x1F) as u8); //G
+            self.pixels[bufferIndex + 2] = get8BitColor(((pixel >> 10) & 0x1F) as u8); //B
+    
+            mapDataBase += 2;
+            bufferIndex += 4;
+        }
     }
 
     pub fn renderNonAffineBG (&mut self, bgNum: usize) {
@@ -20,12 +36,23 @@ impl PPU {
 
         let bgcnt = &self.bg_controls[bgNum];
         let tileDataBase = (bgcnt.getTileDataBase() as u32) << 14;
-        let mapDataBase = (bgcnt.getMapDataBase() as u32) << 11;
+        let mut mapDataBase = (bgcnt.getMapDataBase() as u32) << 11;
         let is8bpp = bgcnt.getBitDepth() == 1;
 
         let y = self.vcount + self.bg_vofs[bgNum].getOffset();
         let hofs = self.bg_hofs[bgNum].getOffset() as u32;
         let bg_size = self.bg_controls[bgNum].getSize();
+
+        match bg_size {
+            0 => {}, // 32x32
+            1 => {}, // 64x32
+            //2 => {
+            //   if y & 511 > 255 {
+            //        mapDataBase += 0x800;
+            //    }
+            //},
+            _ => panic!("Unimplemented BG size for mode 0! Size: {}\n", bg_size)
+        }
 
         let mapStart = mapDataBase + ((y as u32 >> 3) & 31) * 64; // & 31 => wrap around the 32x32 tile map (TODO: add big map support)
 
@@ -45,8 +72,9 @@ impl PPU {
                 1 => { // 64x32
                     if (x_coord & 511) > 255 {
                         mapAddr += 0x800;
-                    }
+                   }
                 }
+                2 => {},
                 _ => panic!("Unimplemented BG size for mode 0! Size: {}\n", bg_size)
             }
 
@@ -81,7 +109,7 @@ impl PPU {
                 }
             }
 
-            self.currentLine[x as usize] = pixel;
+            self.currentLine[x as usize] = pixel as u16;
         }
     }
 
@@ -90,7 +118,7 @@ impl PPU {
         let mut vramIndex = (self.vcount * 240) as usize;
 
         for x in 0..240 {
-            self.currentLine[x] = self.VRAM[vramIndex];
+            self.currentLine[x] = self.VRAM[vramIndex] as u16;
             vramIndex += 1;
         }
     }

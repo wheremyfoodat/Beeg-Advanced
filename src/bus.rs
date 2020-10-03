@@ -49,7 +49,11 @@ impl Bus {
             4 => self.readIO8(address),
             6 => self.ppu.VRAM[(address - 0x6000000) as usize],
             8 | 9 => self.mem.ROM[(address - 0x8000000) as usize],
-            0xE => self.mem.SRAM[(address & 0xFFFF) as usize],
+            0xE => {
+                //if address == 0xE000000 {return 0xC2_u8}; // (FLASH STUB)
+                //if address == 0xE000001 {return 0x9_u8}; // (FLASH STUB)
+                self.mem.SRAM[(address & 0xFFFF) as usize]
+            }
             _ => todo!("Unimplemented 8-bit read at address {:08X}", address)
         }
     }
@@ -166,6 +170,7 @@ impl Bus {
 
     pub fn write8 (&mut self, address: u32, val: u8) {
         match (address >> 24) & 0xF {
+            0 => {},
             2 => self.mem.eWRAM[(address & 0x3FFFF) as usize] = val,
             3 => self.mem.iWRAM[(address & 0x7FFF) as usize] = val,
             4 => self.writeIO8(address, val),
@@ -203,13 +208,13 @@ impl Bus {
             }
 
             7 => {
-                self.ppu.OAM[(address - 0x7000000) as usize] = (val & 0xFF) as u8;
-                self.ppu.OAM[(address - 0x7000000 + 1) as usize] = (val >> 8) as u8;
+                self.ppu.OAM[(address & 0x3FF) as usize] = val as u8;
+                self.ppu.OAM[((address + 1) & 0x3FF) as usize] = (val >> 8) as u8;
             }
 
-            _ => {
-                todo!("Unimplemented 16-bit write to addr {:08X}", address);
-            }
+            8 => println!("16-bit write {:08X} to ROM address {:08X}", val, address),
+
+            _ => todo!("Unimplemented 16-bit write to addr {:08X}", address)
         }
     }
 
@@ -245,10 +250,10 @@ impl Bus {
             }
 
             7 => {
-                self.ppu.OAM[(address - 0x7000000) as usize] = (val & 0xFF) as u8;
-                self.ppu.OAM[(address - 0x7000000 + 1) as usize] = (val >> 8) as u8;
-                self.ppu.OAM[(address - 0x7000000 + 2) as usize] = (val >> 16) as u8;
-                self.ppu.OAM[(address - 0x7000000 + 3) as usize] = (val >> 24) as u8;
+                self.ppu.OAM[(address & 0x3FF) as usize] = (val & 0xFF) as u8;
+                self.ppu.OAM[((address + 1) & 0x3FF) as usize] = (val >> 8) as u8;
+                self.ppu.OAM[((address + 2) & 0x3FF) as usize] = (val >> 16) as u8;
+                self.ppu.OAM[((address + 3) & 0x3FF) as usize] = (val >> 24) as u8;
             }
 
             4 => self.writeIO32(address, val),
@@ -262,7 +267,7 @@ impl Bus {
             0x4000000 => self.ppu.dispcnt.getRaw() as u8,
             0x4000006 => self.ppu.vcount as u8,
             0x4000089 => (self.soundbiasStub >> 8) as u8,
-            _ => {println!("Unimplemented 8-bit read from MMIO address {:08X}", address); 0xFF}
+            _ => 0xFF//{println!("Unimplemented 8-bit read from MMIO address {:08X}", address); 0xFF}
         }
     }
 
@@ -273,12 +278,13 @@ impl Bus {
             0x4000006 => self.ppu.vcount,
             0x4000088 => { println!("Read from SOUNDBIAS (Unimpl)"); self.soundbiasStub as u16},
             0x4000102 | 0x4000106 | 0x400010A | 0x400010E => { println!("Read from Timer control regs! (Unimpl)"); 0}
+            0x400010C => {println!("Read from TIM0"); 0xFFFF}
             0x4000130 => self.joypad.keyinput.getRaw(),
             0x4000200 => self.ie,
             0x4000202 => self.getIF(),
             0x4000204 => self.waitcnt,
             0x4000208 => self.ime as u16,
-            _ => {println!("Unimplemented 16-bit read from MMIO address {:08X}", address); 0}
+            _ => 0xFFFF//{println!("Unimplemented 16-bit read from MMIO address {:08X}", address); 0}
         }
     }
 
@@ -288,7 +294,7 @@ impl Bus {
             0x4000004 => (self.ppu.dispstat.getRaw() as u32) | ((self.ppu.vcount as u32) << 16),
             0x4000200 => ((self.getIF() as u32) << 16) | self.ie as u32,
             0x4000208 => self.ime as u32,
-            _ => {println!("Unimplemented 32-bit read from MMIO address {:08X}", address); 0}
+            _ => 0xFFFFFFFF//{println!("Unimplemented 32-bit read from MMIO address {:08X}", address); 0}
         }
     }
 
@@ -301,7 +307,7 @@ impl Bus {
                 self.scheduler.pushEvent(EventTypes::PollInterrupts, 0); // Schedule polling interrupts
             }
             0x4000301 => {}, //println!("Wrote to HALTCNT"),
-            _ => println!("Unimplemented 8-bit write to IO address {:08X}\n", address)
+            _ => {}//println!("Unimplemented 8-bit write to IO address {:08X}\n", address)
         }
     }
 
@@ -377,7 +383,7 @@ impl Bus {
                 self.ime = (val & 1) == 1;
                 if self.ime {self.scheduler.pushEvent(EventTypes::PollInterrupts, 0)}
             }
-            _ => println!("Unimplemented 32-bit write to IO address {:08X}\n", address)
+            _ => {}//println!("Unimplemented 32-bit write to IO address {:08X}\n", address)
         }
     }
 

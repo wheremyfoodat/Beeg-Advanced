@@ -1,9 +1,8 @@
 use crate::cpu::CPU;
-#[macro_use]
 use crate::isBitSet;
 
 impl CPU {
-    pub fn ROR (&mut self, number: u32, mut amount: u32, affectFlags: bool) -> u32 {
+    pub fn ROR (&mut self, number: u32, amount: u32, affectFlags: bool) -> u32 {
         let res = number.rotate_right(amount); 
 
         if affectFlags && amount != 0 {

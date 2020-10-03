@@ -1,8 +1,6 @@
 use crate::bus::Bus;
 use crate::cpu::CPU;
 use crate::scheduler::EventTypes;
-
-#[macro_use]
 use crate::isBitSet;
 
 // Todo: clean this up

@@ -3,7 +3,7 @@ use crate::bus::Bus;
 use crate::DMA::DMAChannelStatus;
 
 use sfml::graphics::*;
-use sfml::system::SfBox;
+use sfml::system::*;
 use crate::scheduler::*;
 
 pub struct GBA {
@@ -51,6 +51,10 @@ impl GBA {
                 //file.write_all(self.cpu.log.as_bytes());
                 std::process::exit(0);
             }
+        }
+
+        if sfml::window::Key::is_pressed(sfml::window::Key::D) {
+            println!("PC: {:08X}", self.cpu.gprs[15]);
         }
         
         let sprite: Sprite;

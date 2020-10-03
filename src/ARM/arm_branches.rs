@@ -1,7 +1,5 @@
 use crate::bus::Bus;
 use crate::cpu::CPU;
-
-#[macro_use]
 use crate::isBitSet;
 
 impl CPU {

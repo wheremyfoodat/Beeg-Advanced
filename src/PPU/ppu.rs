@@ -1,17 +1,10 @@
 use crate::io::{BGCNT, DISPSTAT, DISPCNT, BGOFS};
 use crate::helpers::get8BitColor;
 
-const RENDERING_MODE_CYCLES: u32 = 960;
 const HBLANK_MODE_CYCLES: u32 = 272;
-const CYCLES_PER_LINE: u32 = RENDERING_MODE_CYCLES + HBLANK_MODE_CYCLES;
+const CYCLES_PER_LINE: u32 = 1232;
 pub const WIDTH: usize = 240;
 pub const HEIGHT: usize = 160;
-
-pub enum PPUModes {
-    Rendering,
-    HBlank,
-    VBlank
-}
 
 pub struct PPU {
     pub dispcnt: DISPCNT,
@@ -27,7 +20,7 @@ pub struct PPU {
 
     pub pixels: [u8; HEIGHT * WIDTH * 4],
     pub interruptFlags: u16,
-    pub currentLine: [u8; WIDTH] // Palette indices for each pixel of the line. Used for multiple BG rendering
+    pub currentLine: [u16; WIDTH] // Palette indices for each pixel of the line. Used for multiple BG rendering
 }
 
 impl PPU {
@@ -44,19 +37,23 @@ impl PPU {
             VRAM: vec![0; 96 * 1024],
             OAM:  vec![0; 1024],
 
-            pixels: [0; 240 * 160 * 4],
+            pixels: [0xFF; 240 * 160 * 4],
             interruptFlags: 0,
 
             currentLine: [0; WIDTH],
         }
     }
 
-    pub fn readPalette16 (&self, palNum: u8) -> u16 {
+    pub fn readPalette16 (&self, palNum: u16) -> u16 {
         (self.paletteRAM[palNum as usize * 2] as u16) | ((self.paletteRAM[palNum as usize * 2 + 1] as u16) << 8)
     }
 
     pub fn readVRAM16 (&self, address: u32) -> u16 {
         (self.VRAM[address as usize] as u16) | ((self.VRAM[address as usize +1] as u16) << 8)
+    }
+
+    pub fn readOAM16 (&self, address: usize) -> u16 {
+        (self.OAM[address] as u16) | ((self.OAM[address + 1] as u16) << 8)
     }
 
     pub fn renderScanline(&mut self) {
@@ -67,11 +64,13 @@ impl PPU {
 
         match self.dispcnt.getMode() {
             0 => self.renderMode0(),
+            //1 => self.renderMode0(),
+            //3 => { self.renderMode3(); return; }, // Mode 3 isn't palette based, so we gotta early exit
             4 => self.renderMode4(),
             _ => panic!("Unimplemented BG mode {}", self.dispcnt.getMode())
         }
 
-        let mut bufferIndex = self.vcount as usize * WIDTH * 4;
+        let mut bufferIndex = self.vcount as usize * WIDTH * 4; // Get the framebuffer position of the current line
 
         for i in 0..WIDTH { // Copy the rendered line to the fb
             let palette = self.readPalette16(self.currentLine[i]);
@@ -79,8 +78,7 @@ impl PPU {
             self.pixels[bufferIndex] = get8BitColor((palette & 0x1F) as u8);          // red
             self.pixels[bufferIndex+1] = get8BitColor(((palette >> 5) & 0x1F) as u8); // green
             self.pixels[bufferIndex+2] = get8BitColor(((palette >> 10) & 0x1F) as u8); // blue
-            self.pixels[bufferIndex+3] = 255; // alpha (always opaque)
-            bufferIndex += 4;
+            bufferIndex += 4; // +4 instead of +3 cause the framebuffer contains Alpha too (which is always FF)
         }
     }
 

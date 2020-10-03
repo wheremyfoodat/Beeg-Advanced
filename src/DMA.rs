@@ -43,7 +43,7 @@ impl Bus {
         let controlReg = self.dmaChannels[channel].controlReg;
         let mut source: u32;
         let mut dest: u32;
-        let wordCount = self.dmaChannels[channel].wordCount;
+        let mut wordCount = self.dmaChannels[channel].wordCount as u32;
         let destAddrControl = controlReg.getDestAddrControl() as usize;
         let srcAddrControl = controlReg.getSourceAddrControl() as usize;
 
@@ -59,7 +59,11 @@ impl Bus {
 
         assert!(srcAddrControl != 3);
         assert!(wordCount < 0x4000 || channel == 3);
-        assert!(wordCount != 0);
+        
+        if wordCount == 0 { // If word count is 0, it gets set to 0x4000, or 0x10000 for DMA3
+            wordCount = 0x4000;
+            if channel == 3 { wordCount = 0x10000 }
+        }
 
         //println!("Firing DMA from channel {}. Word Count: {:04X}\nSource: {:08X}  Destination: {:08X}", channel, wordCount, source, dest);
 
