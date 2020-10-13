@@ -1,16 +1,15 @@
 use crate::bus::Bus;
 use crate::cpu::CPU;
+use crate::sign_extend_32;
 
 impl CPU {
     pub fn Thumb_handleConditionalBranch (&mut self, bus: &mut Bus, instruction: u32) {
-        let mut offset = (instruction & 0xFF) << 1;
-        if (offset >> 8) != 0 {
-            offset |= 0xFFFFFF00; // sign extend
-        }
-
         let condition = (instruction >> 8) & 0xF;
 
         if self.isConditionTrue(condition) {
+            let mut offset = (instruction & 0xFF) << 1;
+            offset = sign_extend_32!(offset, 9); // Sign extend offset to 32 bits from 9 bits
+    
             let pc = self.gprs[15];
             self.setGPR(15, pc.wrapping_add(offset), bus);
         }
@@ -18,17 +17,13 @@ impl CPU {
 
     pub fn Thumb_handleUnconditionalBranch (&mut self, bus: &mut Bus, instruction: u32) {
         let mut offset = (instruction & 0x7FF) << 1;
-        if (offset >> 11) != 0 {
-            offset |= 0xFFFFF000;
-        }
+        offset = sign_extend_32!(offset, 12); // Sign extend the offset to 32 bits from 12
 
         let pc = self.gprs[15];
         self.setGPR(15, pc.wrapping_add(offset), bus);
     }
 
     pub fn Thumb_handleBL1 (&mut self, bus: &mut Bus, instruction: u32) {
-        //println!("[THUMB] Executing BL at addr {:08X}", self.gprs[15]-4);
-        //println!("THUMB BL EXECUTED. NEGATIVE OFFSETS ARE BROKEN.");
         let mut offset = (instruction & 0x7FF) as i16;
         offset <<= 5;
 
@@ -44,7 +39,6 @@ impl CPU {
     }
 
     pub fn Thumb_handleBX (&mut self, address: u32, bus: &mut Bus) {
-        //println!("[THUMB] Executing BX at addr {:08X}", self.gprs[15]-4);
         self.cpsr.setThumbState(address & 1);
         self.setGPR(15, address, bus);
     }

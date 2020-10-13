@@ -1,6 +1,7 @@
 use crate::bus::Bus;
 use crate::cpu::CPU;
 use crate::isBitSet;
+use crate::sign_extend_32;
 
 impl CPU {
     pub fn ARM_handleBranch (&mut self, bus: &mut Bus, instruction: u32) {
@@ -10,13 +11,11 @@ impl CPU {
             self.setGPR(14, pc - 4, bus);
         }
 
-        let mut imm = (instruction & 0xFFFFFF) as i32;
-        if isBitSet!(imm, 23) {
-            imm |= 0x3F000000
-        }
+        let mut imm = (instruction & 0xFFFFFF);
+        imm = sign_extend_32!(imm, 24); // sign extend the immediate from 24 bits to 32 bits
 
         imm <<= 2;
-        let addr = pc.wrapping_add(imm as u32);
+        let addr = pc.wrapping_add(imm);
         self.setGPR(15, addr, bus);
     }
 

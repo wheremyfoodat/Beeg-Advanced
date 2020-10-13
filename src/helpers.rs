@@ -18,6 +18,13 @@ macro_rules! setBit {
     };
 }
 
+#[macro_export]
+macro_rules! sign_extend_32 {
+  ($num: expr, $starting_size: expr) => {
+      (($num as i32) << (32 - $starting_size) >> (32 - $starting_size)) as u32
+  }
+}
+
 pub fn readFileIntoVec(filename: &String) -> Vec<u8> {
     let mut f = File::open(&filename).expect("no file found");
     let metadata = std::fs::metadata(&filename).expect("unable to read metadata");

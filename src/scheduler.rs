@@ -61,10 +61,12 @@ impl Scheduler {
   }
  
   pub fn removeEvent(&mut self) {
-    self.eventList.remove(0);
+    unsafe {
+      self.eventList.remove(0);
+    }
   }
  
-  pub fn removeFirstEventByType (&mut self, eventType: EventTypes) {
+  pub fn removeFirstEventByType (&mut self, eventType: EventTypes) { // Todo: Use StaticVec.remove_item here
     for i in 0..self.eventList.len() {
       if self.eventList[i].eventType == eventType {
         self.eventList.remove(i);

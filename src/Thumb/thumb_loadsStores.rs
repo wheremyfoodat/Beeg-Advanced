@@ -2,6 +2,7 @@ use crate::bus::Bus;
 use crate::cpu::CPU;
 use crate::barrelShifter;
 use crate::isBitSet;
+use crate::sign_extend_32;
 
 impl CPU {
     pub fn Thumb_handleSPRelativeLoad (&mut self, bus: &mut Bus, instruction: u32) {
@@ -149,9 +150,8 @@ impl CPU {
         let addr = ro + rb;
 
         let mut val = bus.read8(addr) as u32;
-        if (val >> 7) != 0 { // sign extend the byte to a word
-            val |= 0xFFFFFF00;
-        }
+        val = sign_extend_32!(val, 8); // Sign extend the value to 32 bits from 8 bits
+
         self.gprs[rdIndex as usize] = val;
     }
 
@@ -162,9 +162,8 @@ impl CPU {
         let addr = ro + rb;
 
         let mut val = bus.read16(addr) as u32;
-        if (val >> 15) != 0 { // sign extend the byte to a word
-            val |= 0xFFFF0000;
-        }
+        val = sign_extend_32!(val, 16); // Sign extend the value to 32 bits from 16 bits
+
         self.gprs[rdIndex as usize] = val;
     }
 

@@ -24,7 +24,7 @@ use sfml::graphics::*;
 use sfml::window::*; // TODO: Not import the entire thing
 
 fn main() {
-    let gameName = "Mother 3";
+    let gameName = "Kirby";
     let mut gba = GBA::new(format!("ROMs/{}.gba", gameName));
     gba.init();
 
@@ -32,7 +32,7 @@ fn main() {
                             &format!("Beeg Advanced: {}", gameName),
                             Style::RESIZE | Style::CLOSE,
                   &ContextSettings::default());
-    window.set_framerate_limit(60);
+    window.set_framerate_limit(0);
     
     loop {
         gba.executeFrame(&mut window);

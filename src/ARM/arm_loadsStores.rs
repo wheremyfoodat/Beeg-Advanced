@@ -1,6 +1,7 @@
 use crate::bus::Bus;
 use crate::cpu::CPU;
 use crate::isBitSet;
+use crate::sign_extend_32;
 
 // TODO: Clean this up
 // A case could be made for making a specific handler for each type of LDR/STRH to make the LUT faster
@@ -249,9 +250,7 @@ impl CPU {
 
     fn ARM_LDRSH(&mut self, rdIndex: u32, address: u32, bus: &mut Bus) {
         let mut val = bus.read16(address) as u32;
-        if (val >> 15) != 0 {
-            val |= 0xFFFF0000;
-        }
+        val = sign_extend_32!(val, 16); // Sign extend value to 32 bits from 16
 
         self.setGPR(rdIndex, val, bus);
     }
@@ -262,9 +261,7 @@ impl CPU {
 
     fn ARM_LDRSB(&mut self, rdIndex: u32, address: u32, bus: &mut Bus) {
         let mut val = bus.read8(address) as u32;
-        if (val >> 7) != 0 {
-            val |= 0xFFFFFF00;
-        }
+        val = sign_extend_32!(val, 8); // Sign extend the value to 32 bits from 8 bits
 
         self.setGPR(rdIndex, val, bus);
     }
