@@ -87,36 +87,32 @@ impl GBA {
             EventTypes::HBlank => { // TODO: Add HBlank DMA here
                 if self.bus.ppu.dispstat.getHBlankIRQEnable() == 1 {
                    self.bus.ppu.interruptFlags |= 0b10; // Request HBlank IRQ
-                   self.bus.scheduler.pushEvent(EventTypes::PollInterrupts, 0); // If an HBlank IRQ was requested, poll IRQs on the next instruction
+                   self.cpu.pollInterrupts(&mut self.bus);
                 }
 
                 if self.bus.ppu.vcount < 160 {
-                    self.bus.pollDMAs(DMAChannelStatus::HBlank); // See if there's any HBlank-triggered DMAs to fire. HBlank DMAs DO NOT fire during VBlank
                     self.bus.ppu.renderScanline();
+                    self.bus.pollDMAs(DMAChannelStatus::HBlank); // See if there's any HBlank-triggered DMAs to fire. HBlank DMAs DO NOT fire during VBlank
                 }
 
                 self.bus.ppu.dispstat.setHBlankFlag(1);
                 self.bus.scheduler.pushEvent(EventTypes::EndOfLine, firedEventTimestamp + 272) // HBlank takes 272 cycles. TODO: Use constants
             }
 
-            EventTypes::VBlank => {
-                self.isFrameReady = true;
-                self.bus.ppu.dispstat.setVBlankFlag(1);
-
-                if self.bus.ppu.dispstat.getVBlankIRQEnable() == 1 {
-                    self.bus.ppu.interruptFlags |= 1;
-                    self.bus.scheduler.pushEvent(EventTypes::PollInterrupts, 0)
-                }
-
-                self.bus.pollDMAs(DMAChannelStatus::VBlank); // See if there's any VBlank-triggered DMAs to fire
-            }
-
             EventTypes::EndOfLine => {
                 self.bus.ppu.vcount += 1;
                 self.bus.ppu.dispstat.setHBlankFlag(0);
 
-                if self.bus.ppu.vcount == 160 { // If PPU is entering VBlank
-                    self.bus.scheduler.pushEvent(EventTypes::VBlank, 0); // Schedule VBlank
+                if self.bus.ppu.vcount == 160 { // If PPU is entering VBlank, run VBlank events
+                    self.isFrameReady = true;
+                    self.bus.ppu.dispstat.setVBlankFlag(1);
+
+                    if self.bus.ppu.dispstat.getVBlankIRQEnable() == 1 {
+                        self.bus.ppu.interruptFlags |= 1;
+                        self.cpu.pollInterrupts(&mut self.bus);
+                    }
+
+                    self.bus.pollDMAs(DMAChannelStatus::VBlank); // See if there's any VBlank-triggered DMAs to fire
                 }
 
                 else if self.bus.ppu.vcount == 228 {
@@ -124,8 +120,8 @@ impl GBA {
                     self.bus.ppu.dispstat.setVBlankFlag(0);
                 }
 
-                if self.bus.ppu.compareLYC() { // If LY == LYC, schedule polling for interrupts
-                    self.bus.scheduler.pushEvent(EventTypes::PollInterrupts, 0);
+                if self.bus.ppu.compareLYC() { // If LY == LYC, poll for interrupts
+                    self.cpu.pollInterrupts(&mut self.bus);
                 }
 
                 self.bus.scheduler.pushEvent(EventTypes::HBlank, firedEventTimestamp + 960);

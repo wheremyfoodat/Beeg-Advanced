@@ -84,7 +84,7 @@ impl PPU {
             } 
 
             let mut x_coord = (attr1 & 0x1FF);
-            let mut y_coord = attr0 & 0xFF as u16;
+            let mut y_coord = (attr0 & 0xFF);
 
             let size = (attr1 >> 14) & 3;
             let shape = (attr0 >> 14) & 3;
@@ -93,11 +93,11 @@ impl PPU {
             if y_coord >= 160 {y_coord -= 256}
             
             x_coord &= 0x1FF;
-            y_coord &= 255;
+            //y_coord &= 255;
 
             let SPRITE_Y = SPRITE_SIZES[size as usize][shape as usize][1];  // Todo: Implement different sprite shapes and sizes
 
-            if y_coord <= self.vcount && SPRITE_Y + y_coord as u16 > self.vcount {
+            if y_coord as u16 <= self.vcount && SPRITE_Y + y_coord as u16 > self.vcount {
                 sprites.push(Sprite::new(attr0, attr1, self.readOAM16(i + 4), x_coord));
             } 
         }
@@ -117,7 +117,7 @@ impl PPU {
                 
             for i in 0..SPRITE_X {
                 let x = sprite.x_coord + i;
-                if x >= 240 || x < 0 {continue}
+                if x >= 240 {continue}
                 if self.currentLine[x as usize] != 0 {continue}
 
                 let mut tile_x = i;

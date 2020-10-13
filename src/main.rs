@@ -32,7 +32,7 @@ fn main() {
                             &format!("Beeg Advanced: {}", gameName),
                             Style::RESIZE | Style::CLOSE,
                   &ContextSettings::default());
-    window.set_framerate_limit(0);
+    window.set_framerate_limit(60);
     
     loop {
         gba.executeFrame(&mut window);

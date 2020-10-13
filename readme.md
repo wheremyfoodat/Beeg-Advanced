@@ -4,4 +4,4 @@ I don't know Rust, so it's particularly fun.
 
 <img src=Image1.png> </img> <img src=Image2.png> </img>
 <br>
-<img src=Image3.png> </img>
+<img src=Image3.png> </img> <img src=Image4.png> </img>

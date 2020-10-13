@@ -87,27 +87,33 @@ impl Bus {
             self.dma_irq_requests |= (1 << 8 << channel);
         }
 
-        if controlReg.getRepeat() {
+        if controlReg.getRepeat() && self.dmaChannels[channel].status != DMAChannelStatus::Immediate {
             if destAddrControl != 3 { // Dest addr control 3 is reload.
                 self.dmaChannels[channel].repeatDestAddr = dest;
             }
             self.dmaChannels[channel].repeatSrcAddr = source;
         }
+
+        else {
+            self.dmaChannels[channel].status = DMAChannelStatus::Inactive;
+        }
     }
 
     pub fn writeDMACNT32 (&mut self, channelNum: usize, val: u32) {
         self.dmaChannels[channelNum].wordCount = val as u16;
-        self.dmaChannels[channelNum].controlReg.setRaw((val >> 16) as u16);
+        self.writeDMACNTHigh(channelNum, (val >> 16) as u16);
+    }
+
+    pub fn writeDMACNTHigh (&mut self, channelNum: usize, val: u16) {
+        self.dmaChannels[channelNum].controlReg.setRaw(val);
        // println!("Wrote {:04X} to DMA{}CNT!", val, channelNum);
 
-        self.dmaChannels[channelNum].status = DMAChannelStatus::Inactive; // Set the status to inactive, then check if it should be set to something else
-
-        if (val >> 31) == 1 { // If enable bit is 1
+        if (val >> 15) == 1 { // If enable bit is 1
             self.dmaChannels[channelNum].repeatDestAddr = self.dmaChannels[channelNum].destAddr;
             self.dmaChannels[channelNum].repeatSrcAddr = self.dmaChannels[channelNum].sourceAddr;
 
-            match (val >> 28) & 0x3 {
-                0 => {self.dmaChannels[channelNum].status = DMAChannelStatus::Immediate; self.fireDMA(channelNum);}
+            match (val >> 12) & 0x3 {
+                0 => self.fireDMA(channelNum),
                 1 => self.dmaChannels[channelNum].status = DMAChannelStatus::VBlank,
                 2 => self.dmaChannels[channelNum].status = DMAChannelStatus::HBlank,
                 _ => self.dmaChannels[channelNum].status = DMAChannelStatus::Special

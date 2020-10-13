@@ -50,8 +50,8 @@ impl Bus {
             6 => self.ppu.VRAM[(address - 0x6000000) as usize],
             8 | 9 => self.mem.ROM[(address - 0x8000000) as usize],
             0xE => {
-                //if address == 0xE000000 {return 0xC2_u8}; // (FLASH STUB)
-                //if address == 0xE000001 {return 0x9_u8}; // (FLASH STUB)
+                if address == 0xE000000 {return 0xC2_u8}; // (FLASH STUB)
+                if address == 0xE000001 {return 0x9_u8}; // (FLASH STUB)
                 self.mem.SRAM[(address & 0xFFFF) as usize]
             }
             _ => todo!("Unimplemented 8-bit read at address {:08X}", address)
@@ -64,6 +64,8 @@ impl Bus {
 
         match (address >> 24) & 0xF { // these 4 bits show us which memory range the addr belongs to
             0 => {
+                if address >= 0x4000 {return 0xFFFF} // For PMD which does some very weird DMAs from 0x0 to 0x0...
+
                 val = self.mem.BIOS[address as usize] as u16;
                 val |= (self.mem.BIOS[(address + 1) as usize] as u16) << 8;
             },
@@ -99,7 +101,6 @@ impl Bus {
                     val = self.mem.ROM[(address - 0x8000000) as usize] as u16;
                     val |= (self.mem.ROM[(address - 0x8000000 + 1) as usize] as u16) << 8;
             },
-
             _ => panic!("16-bit read from unimplemented mem addr {:08X}\n", address)
         }
 
@@ -138,6 +139,13 @@ impl Bus {
             },
 
             4 => val = self.readIO32(address),
+
+            5 => {
+                val = self.ppu.paletteRAM[(address & 0x3FF) as usize] as u32;
+                val |= (self.ppu.paletteRAM[((address + 1) & 0x3FF) as usize] as u32) << 8;
+                val |= (self.ppu.paletteRAM[((address + 2) & 0x3FF) as usize] as u32) << 16;
+                val |= (self.ppu.paletteRAM[((address + 3) & 0x3FF) as usize] as u32) << 24;
+            },
 
             6 => {
                 val = self.ppu.VRAM[(address - 0x6000000) as usize] as u32;
@@ -343,6 +351,17 @@ impl Bus {
                 self.ime = (val & 1) == 1;
                 self.scheduler.pushEvent(EventTypes::PollInterrupts, 0); // Schedule polling interrupts
             }
+            
+            0x40000BA => self.writeDMACNTHigh(0, val),
+            0x40000C6 => self.writeDMACNTHigh(1, val),
+            0x40000D2 => self.writeDMACNTHigh(2, val),
+            0x40000DE => self.writeDMACNTHigh(3, val),
+
+            0x40000B8 => self.dmaChannels[0].wordCount = val,
+            0x40000C4 => self.dmaChannels[1].wordCount = val,
+            0x40000D0 => self.dmaChannels[2].wordCount = val,
+            0x40000DC => self.dmaChannels[3].wordCount = val,
+
             _ => {}//println!("16-bit write to unimplemented IO address {:08X}\n", address)
         }
     }

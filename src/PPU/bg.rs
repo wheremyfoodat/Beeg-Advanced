@@ -44,14 +44,17 @@ impl PPU {
         let bg_size = self.bg_controls[bgNum].getSize();
 
         match bg_size {
-            0 => {}, // 32x32
-            1 => {}, // 64x32
-            2 => {
+            0 | 1 => {} // 32x32, 64x32
+            2 => { // 32x64
                 if y & 511 > 255 {
                     mapDataBase += 0x800;
                 }
             }
-            _ => {} //panic!("Unimplemented BG size for mode 0! Size: {}\n", bg_size)
+            _ => { // 64x64
+                 if y & 511 > 255 {
+                    mapDataBase += 0x800 * 2;
+                }
+            }
         }
 
         let mapStart = mapDataBase + ((y as u32 >> 3) & 31) * 64; // & 31 => wrap around the 32x32 tile map (TODO: add big map support)
@@ -67,15 +70,13 @@ impl PPU {
             let mut tile_y = y & 7;
             let mut mapAddr = mapStart + (((x_coord >> 3) & 31) << 1);
 
-            match bg_size {
-                0 => {}, // 32x32
-                1 => { // 64x32
+            match bg_size { // TODO: Make branchless
+                0 | 2 => {}, // 32x32, 32x64
+                _ => { // 64x32, 64x64
                     if (x_coord & 511) > 255 {
                         mapAddr += 0x800;
                    }
                 }
-                2 => {},
-                _ => {} //panic!("Unimplemented BG size for mode 0! Size: {}\n", bg_size)
             }
 
             let mapEntry = self.readVRAM16(mapAddr);
