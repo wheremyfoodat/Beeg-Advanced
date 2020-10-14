@@ -94,12 +94,12 @@ impl CPU {
         self.populateThumbLUT();
     }
 
-    //#[inline]
+    #[inline(always)]
     pub fn getGPR(&mut self, gpr: u32) -> u32 {
         self.gprs[gpr as usize]
     } 
 
-    //#[inline]
+    #[inline(always)]
     pub fn setGPR(&mut self, gpr: u32, val: u32, bus: &mut Bus) {
         match gpr {
             15 => {
@@ -154,7 +154,7 @@ impl CPU {
         }
     }
 
-    //#[inline]
+    #[inline(always)]
     pub fn refillPipeline (&mut self, bus: &Bus) {
         if self.isInARMState() {
             self.pipeline[0] = bus.read32(self.gprs[15]);
@@ -261,7 +261,7 @@ impl CPU {
         }
     }
 
-    //#[inline]
+    #[inline(always)]
     pub fn isConditionTrue (&self, condition: u32) -> bool {
         match condition {
             14 => true, // AL
@@ -390,7 +390,7 @@ impl CPU {
         if affectFlags {
             self.cpsr.setCarry((res <= operand1) as u32);
             self.setSignAndZero(res);
-            self.cpsr.setOverflow(((operand1 >> 31) != (operand2 >> 31) && (operand2 >> 31) == (res >> 31)) as u32);
+            self.cpsr.setOverflow(((operand1 ^ res) & (!operand2 ^ res)) >> 31);
         }
 
         res
@@ -406,12 +406,12 @@ impl CPU {
         res
     }
 
-    //#[inline]
+    #[inline(always)]
     pub fn _CMP(&mut self, operand1: u32, operand2: u32) {
         let res = operand1.wrapping_sub(operand2);
         self.cpsr.setCarry((res <= operand1) as u32);
         self.setSignAndZero(res);
-        self.cpsr.setOverflow(((operand1 >> 31) != (operand2 >> 31) && (operand2 >> 31) == (res >> 31)) as u32);
+        self.cpsr.setOverflow(((operand1 ^ res) & (!operand2 ^ res)) >> 31);
     }
 
     //#[inline]

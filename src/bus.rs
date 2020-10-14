@@ -4,6 +4,7 @@ use crate::mem::*;
 use crate::PPU::ppu;
 use crate::DMA::DMAChannel;
 use crate::joypad::Joypad;
+use crate::timers::Timers;
 use crate::scheduler::*;
 
 pub struct Bus {

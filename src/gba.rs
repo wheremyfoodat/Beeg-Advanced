@@ -43,7 +43,7 @@ impl GBA {
 
     pub fn executeFrame (&mut self, window: &mut sfml::graphics::RenderWindow) {
         self.isFrameReady = false;
-        let start = Instant::now(); // Start time of the frame
+        //let start = Instant::now(); // Start time of the frame
         
         while !self.isFrameReady {
             self.step();
@@ -60,19 +60,17 @@ impl GBA {
                 std::process::exit(0);
             }
         }
-                
-        let sprite: Sprite;
+        //println!("Frame time: {}ms", start.elapsed().as_millis());                
 
+        let sprite: Sprite;
         unsafe {
             self.texture.update_from_pixels(&self.bus.ppu.pixels, 240, 160, 0, 0);
             sprite = Sprite::with_texture(&self.texture);
         }
-        
+    
         // It's not necessary to clear the window since we're redrawing the whole thing anyways
         window.draw(&sprite);
         window.display();
-
-        println!("Frame time: {}", start.elapsed().as_millis());
     }
 
     fn advanceScheduler(&mut self, cycles: u64) {

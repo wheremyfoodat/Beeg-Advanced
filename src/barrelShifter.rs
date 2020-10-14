@@ -6,7 +6,7 @@ impl CPU {
         let res = number.rotate_right(amount); 
 
         if affectFlags && amount != 0 {
-            self.cpsr.setCarry(isBitSet!(res, 31) as u32);
+            self.cpsr.setCarry(res >> 31);
         }
 
         res
@@ -19,7 +19,7 @@ impl CPU {
             res = number << amount;
 
             if affectFlags && amount != 0 {
-                self.cpsr.setCarry(isBitSet!(number, 32-amount) as u32);
+                self.cpsr.setCarry((number >> (32 - amount)) & 1);
             }
         }
 
@@ -45,7 +45,7 @@ impl CPU {
             res = number >> amount;
 
             if affectFlags && amount != 0 {
-                self.cpsr.setCarry(isBitSet!(number, amount-1) as u32);
+                self.cpsr.setCarry((number >> (amount-1)) & 1);
             }
         }
 
@@ -86,12 +86,11 @@ impl CPU {
     }
 
     pub fn RRX (&mut self, number: u32, affectFlags: bool) -> u32 {
-        let lsb = number & 1;
         let res = (number >> 1) | (self.cpsr.getCarry() << 31);
         if affectFlags {
-            self.cpsr.setCarry(lsb);
+            self.cpsr.setCarry(number & 1);
         }
-        
+
         res
     }
 }

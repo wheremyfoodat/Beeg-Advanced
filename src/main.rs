@@ -13,6 +13,7 @@ pub mod PPU;
 pub mod ARM;
 pub mod irqs;
 pub mod io;
+pub mod timers;
 pub mod joypad;
 pub mod Thumb;
 pub mod barrelShifter;
@@ -24,7 +25,7 @@ use sfml::graphics::*;
 use sfml::window::*; // TODO: Not import the entire thing
 
 fn main() {
-    let gameName = "Pokemon Pinball";
+    let gameName = "Kirby";
     let mut gba = GBA::new(format!("ROMs/{}.gba", gameName));
     gba.init();
 

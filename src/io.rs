@@ -74,3 +74,12 @@ bitfield!{
     pub shouldFireIRQ,        _     :    14;
     pub isDMAEnabled,         _     :    15; 
 }
+
+bitfield! {
+    pub struct TMCNT(u16);
+    pub getRaw, setRaw: 15, 0;
+    pub getFreq,     _: 1, 0;
+    pub isCascading, _: 2;
+    pub fireIRQ,     _: 6;
+    pub isEnabled,   _: 7;
+}
