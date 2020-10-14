@@ -8,7 +8,7 @@ impl CPU {
         let pc = self.getGPR(15);
 
         if isBitSet!(instruction, 24) { // BL (handle link bit)
-            self.setGPR(14, pc - 4, bus);
+            self.gprs[14] = pc - 4;
         }
 
         let mut imm = (instruction & 0xFFFFFF);

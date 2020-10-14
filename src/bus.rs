@@ -21,7 +21,8 @@ pub struct Bus {
 
     // stubbed MMIO registers that I need for the BIOS but haven't properly implemented yet
     soundbiasStub: u32,
-    waitcnt: u16
+    waitcnt: u16,
+    pub halted: bool
 } 
 
 impl Bus {
@@ -37,7 +38,8 @@ impl Bus {
             ie: 0,
             dma_irq_requests: 0, 
             soundbiasStub: 0,
-            waitcnt: 0
+            waitcnt: 0,
+            halted: false
         }
     }
 
@@ -314,7 +316,7 @@ impl Bus {
                 self.ime = (val & 1) != 0;
                 self.scheduler.pushEvent(EventTypes::PollInterrupts, 0); // Schedule polling interrupts
             }
-            0x4000301 => {}, //println!("Wrote to HALTCNT"),
+            0x4000301 => self.halted = (val >> 7) == 0, // HALTCNT
             _ => {}//println!("Unimplemented 8-bit write to IO address {:08X}\n", address)
         }
     }

@@ -83,8 +83,10 @@ impl PPU {
             let tileNum = (mapEntry & 0x3FF) as u32;
             let palNum = (mapEntry >> 12) as u8;
 
-            if isBitSet!(mapEntry, 10) { tile_x ^= 7; } // horizontal tile flip
-            if isBitSet!(mapEntry, 11) { tile_y ^= 7; } // vertical tile flip
+            tile_x ^= ((mapEntry as u32 & 0x400) >> 10) * 7; // fast-ish flipping impl. TODO: Check if it's actually faster
+            tile_y ^= ((mapEntry & 0x800) >> 11) * 7;
+            //if isBitSet!(mapEntry, 10) { tile_x ^= 7; } // horizontal tile flip
+            //if isBitSet!(mapEntry, 11) { tile_y ^= 7; } // vertical tile flip
 
             let mut tileAddr = tileDataBase;
             let mut pixel: u8;

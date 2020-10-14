@@ -1,6 +1,7 @@
 use crate::cpu::CPU;
 use crate::bus::Bus;
 use crate::DMA::DMAChannelStatus;
+use std::time::Instant;
 
 use sfml::graphics::*;
 use sfml::system::*;
@@ -30,12 +31,19 @@ impl GBA {
     }
 
     pub fn step(&mut self) {
-        self.cpu.step(&mut self.bus);
-        self.advanceScheduler(1);
+        if !self.bus.halted { // Check HALTCNT
+            self.cpu.step(&mut self.bus);
+            self.advanceScheduler(1);
+        }
+
+        else {
+            self.advanceScheduler(1);
+        }
     }
 
     pub fn executeFrame (&mut self, window: &mut sfml::graphics::RenderWindow) {
         self.isFrameReady = false;
+        let start = Instant::now(); // Start time of the frame
         
         while !self.isFrameReady {
             self.step();
@@ -63,6 +71,8 @@ impl GBA {
         // It's not necessary to clear the window since we're redrawing the whole thing anyways
         window.draw(&sprite);
         window.display();
+
+        println!("Frame time: {}", start.elapsed().as_millis());
     }
 
     fn advanceScheduler(&mut self, cycles: u64) {

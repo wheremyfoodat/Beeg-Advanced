@@ -94,10 +94,12 @@ impl CPU {
         self.populateThumbLUT();
     }
 
+    //#[inline]
     pub fn getGPR(&mut self, gpr: u32) -> u32 {
         self.gprs[gpr as usize]
     } 
 
+    //#[inline]
     pub fn setGPR(&mut self, gpr: u32, val: u32, bus: &mut Bus) {
         match gpr {
             15 => {
@@ -120,6 +122,7 @@ impl CPU {
         }
     }
 
+    //#[inline]
     pub fn isInARMState(&self) -> bool {
         self.cpsr.isThumb() == 0
     }
@@ -151,6 +154,7 @@ impl CPU {
         }
     }
 
+    //#[inline]
     pub fn refillPipeline (&mut self, bus: &Bus) {
         if self.isInARMState() {
             self.pipeline[0] = bus.read32(self.gprs[15]);
@@ -257,6 +261,7 @@ impl CPU {
         }
     }
 
+    //#[inline]
     pub fn isConditionTrue (&self, condition: u32) -> bool {
         match condition {
             14 => true, // AL
@@ -278,6 +283,7 @@ impl CPU {
         }
     }
 
+    //#[inline]
     pub fn setSignAndZero (&mut self, val: u32) {
         self.cpsr.setZero((val == 0) as u32);
         self.cpsr.setNegative(val >> 31);
@@ -304,6 +310,7 @@ impl CPU {
 */
     }
 
+    //#[inline]
     pub fn _ADD(&mut self, operand1: u32, operand2: u32, affectFlags: bool) -> u32 {
         let res = operand1 as u64 + operand2 as u64;
         
@@ -316,6 +323,7 @@ impl CPU {
         res as u32
     }
 
+    //#[inline]
     pub fn _ADC(&mut self, operand1: u32, operand2: u32, affectFlags: bool, carry: u32) -> u32 {
         let res = operand1 as u64 + operand2 as u64 + carry as u64;
 
@@ -328,6 +336,7 @@ impl CPU {
         res as u32
     }
 
+    //#[inline]
     pub fn _SBC(&mut self, operand1: u32, operand2: u32, affectFlags: bool, carry: u32) -> u32 {
         let subtrahend = operand2 as u64 - carry as u64 + 1_u64;
         let res = (operand1 as u64).wrapping_sub(subtrahend);
@@ -341,6 +350,7 @@ impl CPU {
         res as u32
     }
 
+    //#[inline]
     pub fn _AND(&mut self, operand1: u32, operand2: u32, affectFlags: bool) -> u32 {
         let res = operand1 & operand2;
 
@@ -351,6 +361,7 @@ impl CPU {
         res
     }
 
+    //#[inline]
     pub fn _ORR(&mut self, operand1: u32, operand2: u32, affectFlags: bool) -> u32 {
         let res = operand1 | operand2;
 
@@ -361,6 +372,7 @@ impl CPU {
         res
     }
 
+    //#[inline]
     pub fn _EOR(&mut self, operand1: u32, operand2: u32, affectFlags: bool) -> u32 {
         let res = operand1 ^ operand2;
 
@@ -371,6 +383,7 @@ impl CPU {
         res
     }
 
+    //#[inline]
     pub fn _SUB(&mut self, operand1: u32, operand2: u32, affectFlags: bool) -> u32 {
         let res = operand1.wrapping_sub(operand2);
 
@@ -383,6 +396,7 @@ impl CPU {
         res
     }
 
+    //#[inline]
     pub fn _BIC(&mut self, operand1: u32, operand2: u32, affectFlags: bool) -> u32 {
         let res = operand1 & !operand2;
         if affectFlags { 
@@ -392,6 +406,7 @@ impl CPU {
         res
     }
 
+    //#[inline]
     pub fn _CMP(&mut self, operand1: u32, operand2: u32) {
         let res = operand1.wrapping_sub(operand2);
         self.cpsr.setCarry((res <= operand1) as u32);
@@ -399,6 +414,7 @@ impl CPU {
         self.cpsr.setOverflow(((operand1 >> 31) != (operand2 >> 31) && (operand2 >> 31) == (res >> 31)) as u32);
     }
 
+    //#[inline]
     pub fn _CMN(&mut self, operand1: u32, operand2: u32) {
         let res = operand1 as u64 + operand2 as u64;
         
@@ -407,14 +423,17 @@ impl CPU {
         self.cpsr.setOverflow(((operand1 ^ res as u32) & (operand2 ^ res as u32)) >> 31);
     }
 
+    //#[inline]
     pub fn _TEQ(&mut self, operand1: u32, operand2: u32) {
         self.setSignAndZero(operand1 ^ operand2)
     }
 
+    //#[inline]
     pub fn _TST(&mut self, operand1: u32, operand2: u32) {
         self.setSignAndZero(operand1 & operand2)
     }
 
+    //#[inline]
     pub fn _MUL(&mut self, operand1: u32, operand2: u32, affectFlags: bool) -> u32 {
         let res = operand1.wrapping_mul(operand2);
         if affectFlags {

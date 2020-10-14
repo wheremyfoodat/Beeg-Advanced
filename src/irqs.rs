@@ -5,7 +5,13 @@ impl CPU {
     pub fn pollInterrupts (&mut self, bus: &mut Bus) {
         let interrupt_requests = bus.getIF();
 
-        if self.cpsr.getIRQDisable() == 0 && bus.ime && ((bus.ie & interrupt_requests as u16) != 0) { // TODO: Handle writes to IF and misc interrupts
+        if ((bus.ie & interrupt_requests as u16) != 0) { // TODO: Handle writes to IF and misc interrupts
+            bus.halted = false; // If IF & IE != 0 => get out of halt
+            
+            if !(self.cpsr.getIRQDisable() == 0 && bus.ime) { // If IRQs are disabled or IME is off, return early
+                return;
+            }
+
             let cpsr = self.cpsr.getRaw();
             let lr: u32;
 
