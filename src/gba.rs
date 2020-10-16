@@ -32,8 +32,8 @@ impl GBA {
 
     pub fn step(&mut self) {
         if !self.bus.halted { // Check HALTCNT
-            self.cpu.step(&mut self.bus);
             self.advanceScheduler(1);
+            self.cpu.step(&mut self.bus);
         }
 
         else {
@@ -43,7 +43,7 @@ impl GBA {
 
     pub fn executeFrame (&mut self, window: &mut sfml::graphics::RenderWindow) {
         self.isFrameReady = false;
-        //let start = Instant::now(); // Start time of the frame
+        let start = Instant::now(); // Start time of the frame
         
         while !self.isFrameReady {
             self.step();
@@ -60,7 +60,9 @@ impl GBA {
                 std::process::exit(0);
             }
         }
-        //println!("Frame time: {}ms", start.elapsed().as_millis());                
+        
+        //println!("Frame time: {}ms", start.elapsed().as_millis());  
+        // println!("FPS: {}", 16.0 / start.elapsed().as_millis() as f64 * 60.0);              
 
         let sprite: Sprite;
         unsafe {
@@ -134,6 +136,12 @@ impl GBA {
 
                 self.bus.scheduler.pushEvent(EventTypes::HBlank, firedEventTimestamp + 960);
             }
+
+            EventTypes::Timer0Overflow => self.bus.timer_overflow_callback(0),
+            EventTypes::Timer1Overflow => self.bus.timer_overflow_callback(1),
+            EventTypes::Timer2Overflow => self.bus.timer_overflow_callback(2),
+            EventTypes::Timer3Overflow => self.bus.timer_overflow_callback(3),
+
             _ => panic!("unknown event!")
         }
     }

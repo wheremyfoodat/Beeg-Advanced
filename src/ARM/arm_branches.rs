@@ -19,6 +19,18 @@ impl CPU {
         self.setGPR(15, addr, bus);
     }
 
+    pub fn ARM_handleBranchWithLink (&mut self, bus: &mut Bus, instruction: u32) {
+        let pc = self.getGPR(15);
+        self.gprs[14] = pc - 4;
+
+        let mut imm = (instruction & 0xFFFFFF);
+        imm = sign_extend_32!(imm, 24); // sign extend the immediate from 24 bits to 32 bits
+
+        imm <<= 2;
+        let addr = pc.wrapping_add(imm);
+        self.setGPR(15, addr, bus);
+    }
+
     pub fn ARM_handleBranchExchange (&mut self, bus: &mut Bus, instruction: u32) {
         let rm = self.getGPR(instruction & 0xF);
         self.cpsr.setThumbState(rm & 1);

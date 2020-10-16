@@ -10,6 +10,7 @@ use crate::scheduler::*;
 pub struct Bus {
     mem: Memory,
     pub ppu: PPU,
+    pub timers: Timers,
     pub joypad: Joypad,
     pub dmaChannels: [DMAChannel; 4],
     pub scheduler: Scheduler,
@@ -31,6 +32,7 @@ impl Bus {
         Bus {
             mem: Memory::new(romPath),
             ppu: PPU::new(),
+            timers: Timers::new(),
             joypad: Joypad::new(),
             dmaChannels: [DMAChannel::new(), DMAChannel::new(), DMAChannel::new(), DMAChannel::new()],
             scheduler: Scheduler::new(),
@@ -44,6 +46,7 @@ impl Bus {
         }
     }
 
+    #[inline(always)]
     pub fn read8 (&self, address: u32) -> u8 {
         match (address >> 24) & 0xF {
             0 => self.mem.BIOS[address as usize],
@@ -61,6 +64,7 @@ impl Bus {
         }
     }
 
+    #[inline(always)]
     pub fn read16 (&self, address: u32) -> u16 {
         debug_assert!((address & 1) == 0);
         let mut val: u16;
@@ -104,12 +108,14 @@ impl Bus {
                     val = self.mem.ROM[(address - 0x8000000) as usize] as u16;
                     val |= (self.mem.ROM[(address - 0x8000000 + 1) as usize] as u16) << 8;
             },
+
             _ => panic!("16-bit read from unimplemented mem addr {:08X}\n", address)
         }
 
         val
     }
 
+    #[inline(always)]
     pub fn read32 (&self, address: u32) -> u32 {
         debug_assert!((address & 3) == 0);
         let mut val: u32;
@@ -179,6 +185,7 @@ impl Bus {
         val
     }
 
+    #[inline(always)]
     pub fn write8 (&mut self, address: u32, val: u8) {
         match (address >> 24) & 0xF {
             0 => {},
@@ -190,6 +197,7 @@ impl Bus {
         }
     }
 
+    #[inline(always)]
     pub fn write16 (&mut self, address: u32, val: u16) {
         debug_assert!((address & 1) == 0); 
 
@@ -229,6 +237,7 @@ impl Bus {
         }
     }
 
+    #[inline(always)]
     pub fn write32 (&mut self, address: u32, val: u32) {
         debug_assert!((address & 3) == 0); 
         match (address >> 24) & 0xF { // these 4 bits show us which memory range the addr belongs to
@@ -289,13 +298,18 @@ impl Bus {
             0x4000006 => self.ppu.vcount,
             0x4000088 => { println!("Read from SOUNDBIAS (Unimpl)"); self.soundbiasStub as u16},
             0x4000102 | 0x4000106 | 0x400010A | 0x400010E => { println!("Read from Timer control regs! (Unimpl)"); 0}
-            0x400010C => {println!("Read from TIM0"); 0xFFFF}
+            
+            0x4000100 => self.readTimer(0),
+            0x4000104 => self.readTimer(1),
+            0x4000108 => self.readTimer(2),
+            0x400010C => self.readTimer(3),
+
             0x4000130 => self.joypad.keyinput.getRaw(),
             0x4000200 => self.ie,
             0x4000202 => self.getIF(),
             0x4000204 => self.waitcnt,
             0x4000208 => self.ime as u16,
-            _ => 0//{println!("Unimplemented 16-bit read from MMIO address {:08X}", address); 0}
+            _ => 0// {println!("Unimplemented 16-bit read from MMIO address {:08X}", address); 0}
         }
     }
 
@@ -331,6 +345,7 @@ impl Bus {
                 self.scheduler.pushEvent(EventTypes::PollInterrupts, 0)
             },
 
+            // PPU regs
             0x4000008 => self.ppu.bg_controls[0].setRaw(val),
             0x400000A => self.ppu.bg_controls[1].setRaw(val),
             0x400000C => self.ppu.bg_controls[2].setRaw(val),
@@ -343,6 +358,18 @@ impl Bus {
             0x4000016 => self.ppu.bg_vofs[1].setRaw(val),
             0x400001A => self.ppu.bg_vofs[2].setRaw(val),
             0x400001E => self.ppu.bg_vofs[3].setRaw(val),
+
+            // Timer registers
+
+            0x4000100 => self.timers.reload_values[0] = val,
+            0x4000102 => self.writeTMCNT16(0, val),
+            0x4000104 => self.timers.reload_values[1] = val,
+            0x4000106 => self.writeTMCNT16(1, val),
+            0x4000108 => self.timers.reload_values[2] = val,
+            0x400010A => self.writeTMCNT16(2, val),
+            0x400010C => self.timers.reload_values[3] = val,
+            0x400010E => self.writeTMCNT16(3, val),
+
             0x4000088 => { self.soundbiasStub = (val as u32 | self.soundbiasStub & 0xFFFF0000); println!("Wrote to SOUNDBIAS!") },
             0x4000200 => { 
                 self.ie = val; 
@@ -410,7 +437,7 @@ impl Bus {
     }
 
     pub fn getIF(&self) -> u16 {
-        self.dma_irq_requests | self.ppu.interruptFlags
+        self.dma_irq_requests | self.ppu.interruptFlags | self.timers.timer_interrupt_requests
     }
 
     pub fn setIF(&mut self, val: u16) {

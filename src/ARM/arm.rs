@@ -34,8 +34,12 @@ impl CPU {
                 self.armLUT[x] = Self::ARM_handleMultiply;
             }
 
-            else if (x >> 9) == 0b101 { // Brunch and Brunch with Link
+            else if (x >> 8) == 0b1010 { // Brunch
                 self.armLUT[x] = Self::ARM_handleBranch;
+            }
+
+            else if (x >> 8) == 0b1011 { // Brunch
+                self.armLUT[x] = Self::ARM_handleBranchWithLink;
             }
 
             else if x == 0b000100100001 {

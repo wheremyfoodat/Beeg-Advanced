@@ -76,6 +76,7 @@ bitfield!{
 }
 
 bitfield! {
+    #[derive(Copy, Clone)]
     pub struct TMCNT(u16);
     pub getRaw, setRaw: 15, 0;
     pub getFreq,     _: 1, 0;

@@ -109,7 +109,7 @@ impl PPU {
             let SPRITE_Y = SPRITE_SIZES[sprite.size as usize][sprite.shape as usize][1];
             let linesSinceOBJStart = self.vcount as u32 - sprite.y_coord as u32;
             
-            assert!(!sprite.doubleSize); 
+            //assert!(!sprite.doubleSize); 
             //if sprite.doubleSize {
             //    SPRITE_X *= 2;
             //    SPRITE_Y *= 2;
