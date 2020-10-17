@@ -106,8 +106,8 @@ impl Bus {
             },
             
             8 | 9 => {
-                    val = self.mem.ROM[((address - 0x8000000) & (self.mem.ROM.len() as u32 - 1)) as usize] as u16;
-                    val |= (self.mem.ROM[((address - 0x8000000 + 1) & (self.mem.ROM.len() as u32 - 1)) as usize] as u16) << 8;
+                    val = self.mem.ROM[(address - 0x8000000) as usize] as u16;
+                    val |= (self.mem.ROM[(address - 0x8000000 + 1) as usize] as u16) << 8;
             },
             
             _ => panic!("16-bit read from unimplemented mem addr {:08X}\n", address)

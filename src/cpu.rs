@@ -122,7 +122,7 @@ impl CPU {
         }
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn isInARMState(&self) -> bool {
         self.cpsr.isThumb() == 0
     }
@@ -283,7 +283,7 @@ impl CPU {
         }
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn setSignAndZero (&mut self, val: u32) {
         self.cpsr.setZero((val == 0) as u32);
         self.cpsr.setNegative(val >> 31);
@@ -310,7 +310,7 @@ impl CPU {
 */
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn _ADD(&mut self, operand1: u32, operand2: u32, affectFlags: bool) -> u32 {
         let res = operand1 as u64 + operand2 as u64;
         
@@ -323,7 +323,7 @@ impl CPU {
         res as u32
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn _ADC(&mut self, operand1: u32, operand2: u32, affectFlags: bool, carry: u32) -> u32 {
         let res = operand1 as u64 + operand2 as u64 + carry as u64;
 
@@ -336,21 +336,21 @@ impl CPU {
         res as u32
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn _SBC(&mut self, operand1: u32, operand2: u32, affectFlags: bool, carry: u32) -> u32 {
         let subtrahend = operand2 as u64 - carry as u64 + 1_u64;
-        let res = (operand1 as u64).wrapping_sub(subtrahend);
+        let res = (operand1 as u64).wrapping_sub(subtrahend) as u32;
 
         if affectFlags {
             self.cpsr.setCarry((subtrahend <= operand1 as u64) as u32);
-            self.setSignAndZero(res as u32);
-            self.cpsr.setOverflow(((operand1 >> 31) != (operand2 >> 31) && (operand2 >> 31) == (res as u32 >> 31)) as u32)
+            self.setSignAndZero(res);
+            self.cpsr.setOverflow(((operand1 ^ res) & (!operand2 ^ res)) >> 31);
         }
 
-        res as u32
+        res
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn _AND(&mut self, operand1: u32, operand2: u32, affectFlags: bool) -> u32 {
         let res = operand1 & operand2;
 
@@ -361,7 +361,7 @@ impl CPU {
         res
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn _ORR(&mut self, operand1: u32, operand2: u32, affectFlags: bool) -> u32 {
         let res = operand1 | operand2;
 
@@ -372,7 +372,7 @@ impl CPU {
         res
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn _EOR(&mut self, operand1: u32, operand2: u32, affectFlags: bool) -> u32 {
         let res = operand1 ^ operand2;
 
@@ -383,7 +383,7 @@ impl CPU {
         res
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn _SUB(&mut self, operand1: u32, operand2: u32, affectFlags: bool) -> u32 {
         let res = operand1.wrapping_sub(operand2);
 
@@ -396,7 +396,7 @@ impl CPU {
         res
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn _BIC(&mut self, operand1: u32, operand2: u32, affectFlags: bool) -> u32 {
         let res = operand1 & !operand2;
         if affectFlags { 
@@ -414,7 +414,7 @@ impl CPU {
         self.cpsr.setOverflow(((operand1 ^ res) & (!operand2 ^ res)) >> 31);
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn _CMN(&mut self, operand1: u32, operand2: u32) {
         let res = operand1 as u64 + operand2 as u64;
         
@@ -423,17 +423,17 @@ impl CPU {
         self.cpsr.setOverflow(((operand1 ^ res as u32) & (operand2 ^ res as u32)) >> 31);
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn _TEQ(&mut self, operand1: u32, operand2: u32) {
         self.setSignAndZero(operand1 ^ operand2)
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn _TST(&mut self, operand1: u32, operand2: u32) {
         self.setSignAndZero(operand1 & operand2)
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn _MUL(&mut self, operand1: u32, operand2: u32, affectFlags: bool) -> u32 {
         let res = operand1.wrapping_mul(operand2);
         if affectFlags {
