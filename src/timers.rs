@@ -3,16 +3,7 @@ use crate::bus::Bus;
 use crate::scheduler::EventTypes;
 
 const TIMER_THRESHOLDS: [u64; 4] = [1, 64, 256, 1024];
-
-#[inline(always)]
-pub fn timerNumToSchedulerEvent (timer_num: usize) -> EventTypes {
-    match timer_num {
-        0 => EventTypes::Timer0Overflow,
-        1 => EventTypes::Timer1Overflow,
-        2 => EventTypes::Timer2Overflow,
-        _ => EventTypes::Timer3Overflow
-    }
-}
+const TIMER_SCHEDULER_EVENTS: [EventTypes; 4] = [EventTypes::Timer0Overflow, EventTypes::Timer1Overflow, EventTypes::Timer2Overflow, EventTypes::Timer3Overflow];
 
 pub struct Timers {
     pub timer_values: [u16; 4],
@@ -37,10 +28,10 @@ impl Timers {
 impl Bus {
     pub fn writeTMCNT16 (&mut self, timer_num: usize, value: u16) {
         let old_reg = self.timers.control_regs[timer_num];
-        let timer_overflow_event = timerNumToSchedulerEvent(timer_num);
+        let timer_overflow_event = TIMER_SCHEDULER_EVENTS[timer_num];
         let new_reg = self.timers.control_regs[timer_num];
-
         self.scheduler.removeFirstEventByType(timer_overflow_event);
+
         self.timers.control_regs[timer_num].setRaw(value);
 
         if old_reg.isEnabled() && !new_reg.isEnabled() { // If the timer was on and it was turned off
@@ -48,7 +39,15 @@ impl Bus {
             self.timers.timer_values[timer_num] += (time_passed / TIMER_THRESHOLDS[old_reg.getFreq() as usize]) as u16;
         }
 
-        else if new_reg.isEnabled() && !new_reg.isCascading() {
+        else if new_reg.isEnabled() {
+            if !old_reg.isEnabled() { // if timer was turned on, reload the control value
+                self.timers.timer_values[timer_num] = self.timers.reload_values[timer_num];
+            }
+
+            if new_reg.isCascading() {
+                return;
+            }
+
             let increments_until_overflow = 0x10000 as u64 - self.timers.timer_values[timer_num] as u64;
             let new_frequency = TIMER_THRESHOLDS[new_reg.getFreq() as usize];
             let cycles_until_overflow = self.scheduler.currentTimestamp + (increments_until_overflow * new_frequency);
@@ -57,7 +56,7 @@ impl Bus {
         }
     }
 
-    #[inline(always)]
+    // #[inline(always)]
     pub fn readTimer (&self, timer_num: usize) -> u16 {
         if self.timers.control_regs[timer_num].isCascading() {
             return self.timers.timer_values[timer_num]
@@ -68,7 +67,7 @@ impl Bus {
         self.timers.timer_values[timer_num] + (time_passed / threshold) as u16
     }
 
-    #[inline(always)]
+    // #[inline(always)]
     pub fn timer_overflow_callback (&mut self, timer_num: usize) {
         let control_reg = self.timers.control_regs[timer_num];
         let reload_value = self.timers.reload_values[timer_num];
@@ -87,6 +86,15 @@ impl Bus {
                     self.timer_overflow_callback(timer_num + 1);
                 }
             }
+        }
+
+        if !control_reg.isCascading() { // reschedule
+            let timer_overflow_event = TIMER_SCHEDULER_EVENTS[timer_num];
+            let increments_until_overflow = 0x10000 as u64 - self.timers.timer_values[timer_num] as u64;
+            let frequency = TIMER_THRESHOLDS[control_reg.getFreq() as usize];
+            let cycles_until_overflow = self.scheduler.currentTimestamp + (increments_until_overflow * frequency);
+            self.scheduler.pushEvent(timer_overflow_event, cycles_until_overflow);
+            self.timers.starting_timestamps[timer_num] = self.scheduler.currentTimestamp;
         }
     }
 }

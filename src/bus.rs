@@ -55,11 +55,12 @@ impl Bus {
             4 => self.readIO8(address),
             6 => self.ppu.VRAM[(address - 0x6000000) as usize],
             8 | 9 => self.mem.ROM[(address - 0x8000000) as usize],
-            0xE => {
+            0xE => { // TODO: Add support for different backup media
                 if address == 0xE000000 {return 0xC2_u8}; // (FLASH STUB)
                 if address == 0xE000001 {return 0x9_u8}; // (FLASH STUB)
                 self.mem.SRAM[(address & 0xFFFF) as usize]
             }
+
             _ => todo!("Unimplemented 8-bit read at address {:08X}", address)
         }
     }
@@ -105,10 +106,10 @@ impl Bus {
             },
             
             8 | 9 => {
-                    val = self.mem.ROM[(address - 0x8000000) as usize] as u16;
-                    val |= (self.mem.ROM[(address - 0x8000000 + 1) as usize] as u16) << 8;
+                    val = self.mem.ROM[((address - 0x8000000) & (self.mem.ROM.len() as u32 - 1)) as usize] as u16;
+                    val |= (self.mem.ROM[((address - 0x8000000 + 1) & (self.mem.ROM.len() as u32 - 1)) as usize] as u16) << 8;
             },
-
+            
             _ => panic!("16-bit read from unimplemented mem addr {:08X}\n", address)
         }
 
@@ -192,6 +193,7 @@ impl Bus {
             2 => self.mem.eWRAM[(address & 0x3FFFF) as usize] = val,
             3 => self.mem.iWRAM[(address & 0x7FFF) as usize] = val,
             4 => self.writeIO8(address, val),
+            6 => println!("8-bit write to VRAM!"),
             0xE => self.mem.SRAM[(address & 0xFFFF) as usize] = val,
             _ => todo!("Unimplemented 8-bit write at address {:08X}", address)
         }
@@ -233,7 +235,7 @@ impl Bus {
 
             8 => println!("16-bit write {:08X} to ROM address {:08X}", val, address),
 
-            _ => todo!("Unimplemented 16-bit write to addr {:08X}", address)
+            _ => {}//todo!("Unimplemented 16-bit write to addr {:08X}", address)
         }
     }
 
