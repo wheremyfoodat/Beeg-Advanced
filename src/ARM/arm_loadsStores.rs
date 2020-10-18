@@ -244,8 +244,9 @@ impl CPU {
     }
 
     fn ARM_LDRH(&mut self, rdIndex: u32, address: u32, bus: &mut Bus) {
-        let val = bus.read16(address);
-        self.setGPR(rdIndex, val as u32, bus);
+        let mut val = bus.read16(address & !1) as u32;
+        val = self.ROR(val as u32, (address & 1) * 8, false);
+        self.setGPR(rdIndex, val, bus);
     }
 
     fn ARM_LDRSH(&mut self, rdIndex: u32, address: u32, bus: &mut Bus) {

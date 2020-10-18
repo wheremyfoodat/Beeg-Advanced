@@ -68,6 +68,9 @@ impl Bus {
         //println!("Firing DMA from channel {}. Word Count: {:04X}\nSource: {:08X}  Destination: {:08X}", channel, wordCount, source, dest);
 
         if controlReg.is32Bit() { // If the transfer is 32 bit
+            dest &= !3; // Align the dest and source addresses
+            source &= !3;
+
             for i in 0..wordCount {
                 self.write32(dest, self.read32(source));
                 dest += DMAOffsets[destAddrControl] as u32;
@@ -76,6 +79,9 @@ impl Bus {
         }
         
         else {
+            dest &= !1; // Align the dest and source addresses
+            source &= !1;
+
             for i in 0..wordCount {
                 self.write16(dest, self.read16(source));
                 dest += (DMAOffsets[destAddrControl] >> 1) as u32;

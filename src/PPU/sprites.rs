@@ -114,7 +114,7 @@ impl PPU {
             let SPRITE_Y = SPRITE_SIZES[sprite.size as usize][sprite.shape as usize][1];
             let linesSinceOBJStart = (self.vcount as u32 - sprite.y_coord as u32) & (SPRITE_Y as u32-1);
             
-            assert!(!sprite.doubleSize); 
+            //assert!(!sprite.doubleSize); 
             //if sprite.doubleSize {
             //    SPRITE_X *= 2;
             //    SPRITE_Y *= 2;
@@ -139,7 +139,7 @@ impl PPU {
                     tile_addr += sprite.tile_num as u32 * 64;
                     //tile_addr += ((x as u32) >> 3) * 64;
                     //tile_addr += ((self.vcount as u32 & 31) >> 3) * 0x800;
-                    panic!("We don't have 8bpp sprites ree");
+                    //panic!("We don't have 8bpp sprites ree");
                     tile_addr += tile_y as u32 * 8;
                     tile_addr += tile_x as u32;
                     

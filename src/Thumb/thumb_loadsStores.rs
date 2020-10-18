@@ -44,8 +44,11 @@ impl CPU {
         let rdIndex = instruction & 7;
         let rb = self.getGPR((instruction >> 3) & 7);
         let offset = ((instruction >> 6) & 0x1F) << 1;
+        let address = rb + offset;
+        let mut val = (bus.read16(address & !1)) as u32; // handle mem alignment
+        val = self.ROR(val, 8 * (address & 1), false);
 
-        self.gprs[rdIndex as usize] = bus.read16(rb + offset) as u32;
+        self.gprs[rdIndex as usize] = val;
     }
 
     pub fn Thumb_handleLoadWordWithImm (&mut self, bus: &mut Bus, instruction: u32) {

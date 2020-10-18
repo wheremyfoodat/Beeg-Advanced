@@ -49,7 +49,7 @@ impl Bus {
     #[inline(always)]
     pub fn read8 (&self, address: u32) -> u8 {
         match (address >> 24) & 0xF {
-            0 => self.mem.BIOS[address as usize],
+            0 => self.mem.BIOS[address as usize & 0x3FFF as usize], // TODO: Don't mirror BIOS.
             2 => self.mem.eWRAM[(address & 0x3FFFF) as usize],
             3 => self.mem.iWRAM[(address & 0x7FFF) as usize],
             4 => self.readIO8(address),
@@ -67,15 +67,13 @@ impl Bus {
 
     #[inline(always)]
     pub fn read16 (&self, address: u32) -> u16 {
-        debug_assert!((address & 1) == 0);
+        assert!((address & 1) == 0);
         let mut val: u16;
 
         match (address >> 24) & 0xF { // these 4 bits show us which memory range the addr belongs to
-            0 => {
-                if address >= 0x4000 {return 0xFFFF} // For PMD which does some very weird DMAs from 0x0 to 0x0...
-
-                val = self.mem.BIOS[address as usize] as u16;
-                val |= (self.mem.BIOS[(address + 1) as usize] as u16) << 8;
+            0 => { // TODO: Don't mirror BIOS
+                val = self.mem.BIOS[(address & 0x3FFF) as usize] as u16;
+                val |= (self.mem.BIOS[((address & 0x3FFF) + 1) as usize] as u16) << 8;
             },
 
             2 => {
@@ -219,8 +217,8 @@ impl Bus {
             4 => self.writeIO16(address, val),
             
             5 => {
-                self.ppu.paletteRAM[(address - 0x5000000) as usize] = (val & 0xFF) as u8;
-                self.ppu.paletteRAM[(address - 0x5000000 + 1) as usize] = (val >> 8) as u8;
+                self.ppu.paletteRAM[(address & 0x3FF) as usize] = (val & 0xFF) as u8;
+                self.ppu.paletteRAM[((address + 1) & 0x3FF) as usize] = (val >> 8) as u8;
             }
 
             6 => {

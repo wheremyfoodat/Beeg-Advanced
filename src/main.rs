@@ -25,7 +25,7 @@ use sfml::graphics::*;
 use sfml::window::*; // TODO: Not import the entire thing
 
 fn main() {
-    let gameName = "Pokemon Ruby";
+    let gameName = "Metroid Zero Mission";
     let mut gba = GBA::new(format!("ROMs/{}.gba", gameName));
     gba.init();
 

@@ -2,6 +2,7 @@ use crate::cpu::CPU;
 use crate::isBitSet;
 
 impl CPU {
+    #[inline(always)]
     pub fn ROR (&mut self, number: u32, amount: u32, affectFlags: bool) -> u32 {
         let res = number.rotate_right(amount); 
 
@@ -12,6 +13,7 @@ impl CPU {
         res
     }
 
+    #[inline(always)]
     pub fn LSL (&mut self, number: u32, amount: u32, affectFlags: bool) -> u32 {
         let res: u32;
 
@@ -38,6 +40,7 @@ impl CPU {
         res
     }
 
+    #[inline(always)]
     pub fn LSR (&mut self, number: u32, amount: u32, affectFlags: bool) -> u32 {
         let res: u32;
 
@@ -64,6 +67,7 @@ impl CPU {
         res
     }
 
+    #[inline(always)]
     pub fn ASR (&mut self, number: u32, amount: u32, affectFlags: bool) -> u32 {
        //debug_assert!(amount < 32 && amount != 0);
         let res: u32;
@@ -85,6 +89,7 @@ impl CPU {
         res
     }
 
+    #[inline(always)]
     pub fn RRX (&mut self, number: u32, affectFlags: bool) -> u32 {
         let res = (number >> 1) | (self.cpsr.getCarry() << 31);
         if affectFlags {
