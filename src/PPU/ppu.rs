@@ -1,5 +1,6 @@
 use crate::io::{BGCNT, DISPSTAT, DISPCNT, BGOFS};
 use crate::helpers::get8BitColor;
+use crate::PPU::sprites::Sprite;
 
 const HBLANK_MODE_CYCLES: u32 = 272;
 const CYCLES_PER_LINE: u32 = 1232;
@@ -19,6 +20,7 @@ pub struct PPU {
     pub OAM:  Vec<u8>,
 
     pub pixels: [u8; HEIGHT * WIDTH * 4],
+    pub sprites: Vec<Sprite>,
     pub interruptFlags: u16,
     pub currentLine: [u16; WIDTH] // Palette indices for each pixel of the line. Used for multiple BG rendering
 }
@@ -38,6 +40,7 @@ impl PPU {
             OAM:  vec![0; 1024],
 
             pixels: [0xFF; 240 * 160 * 4],
+            sprites: vec![],
             interruptFlags: 0,
 
             currentLine: [0; WIDTH],

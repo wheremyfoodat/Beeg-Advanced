@@ -6,11 +6,19 @@ use crate::helpers::get8BitColor;
 impl PPU {
     
     pub fn renderMode0(&mut self) {
-        self.renderSprites();
-        self.renderNonAffineBG(0);
-        self.renderNonAffineBG(1);
-        self.renderNonAffineBG(2);
-        self.renderNonAffineBG(3);
+        self.fetchSprites();
+        //self.renderNonAffineBG(0);
+        //self.renderNonAffineBG(1);
+        //self.renderNonAffineBG(2);
+        //self.renderNonAffineBG(3);
+
+        for prio in 0..4 {
+            self.renderSprites(prio);
+            if self.bg_controls[0].getPriority() == prio {self.renderNonAffineBG(0)}
+            if self.bg_controls[1].getPriority() == prio {self.renderNonAffineBG(1)}
+            if self.bg_controls[2].getPriority() == prio {self.renderNonAffineBG(2)}
+            if self.bg_controls[3].getPriority() == prio {self.renderNonAffineBG(3)}
+        }
     }
 
     pub fn renderMode3(&mut self) { // Mode 3 stub

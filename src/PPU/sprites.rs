@@ -72,8 +72,8 @@ impl Eq for Sprite  { }
 
 
 impl PPU {
-    pub fn renderSprites(&mut self) { // TODO: Account for OBJ priority
-        let mut sprites: Vec<Sprite> = vec![];
+    pub fn fetchSprites(&mut self) {
+        self.sprites = vec![];
 
         for i in (0..OAM_MAX).step_by(8) {
             let attr0 = self.readOAM16(i);
@@ -99,14 +99,18 @@ impl PPU {
             let sprite_end = (SPRITE_Y + y_coord) & 0xFF;
 
             if (y_coord <= self.vcount && sprite_end > self.vcount) || (sprite_end < y_coord && self.vcount < sprite_end) {
-                sprites.push(Sprite::new(attr0, attr1, self.readOAM16(i + 4), x_coord));
+                self.sprites.push(Sprite::new(attr0, attr1, self.readOAM16(i + 4), x_coord));
             } 
         }
 
-        sprites.sort(); 
+        self.sprites.sort(); 
+    }
 
-        for sprite in sprites {
-            let SPRITE_X= SPRITE_SIZES[sprite.size as usize][sprite.shape as usize][0];
+    pub fn renderSprites(&mut self, prio: u16) { // TODO: Account for OBJ priority
+        for sprite in &self.sprites {
+            if sprite.priority != prio {continue;}
+
+            let SPRITE_X = SPRITE_SIZES[sprite.size as usize][sprite.shape as usize][0];
             let SPRITE_Y = SPRITE_SIZES[sprite.size as usize][sprite.shape as usize][1];
             let linesSinceOBJStart = (self.vcount as u32 - sprite.y_coord as u32) & (SPRITE_Y as u32-1);
             
