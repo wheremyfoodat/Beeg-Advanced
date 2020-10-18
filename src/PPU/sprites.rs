@@ -92,12 +92,13 @@ impl PPU {
             if x_coord >= 240 {x_coord -= 512}
             if y_coord >= 160 {y_coord -= 256}
             
-            x_coord &= 0x1FF;
+            //x_coord &= 0x1FF;
             y_coord &= 255;
 
             let SPRITE_Y = SPRITE_SIZES[size as usize][shape as usize][1];  // Todo: Implement different sprite shapes and sizes
+            let sprite_end = (SPRITE_Y + y_coord) & 0xFF;
 
-            if y_coord as u16 <= self.vcount && SPRITE_Y + y_coord as u16 > self.vcount {
+            if (y_coord <= self.vcount && sprite_end > self.vcount) || (sprite_end < y_coord && self.vcount < sprite_end) {
                 sprites.push(Sprite::new(attr0, attr1, self.readOAM16(i + 4), x_coord));
             } 
         }
@@ -107,7 +108,7 @@ impl PPU {
         for sprite in sprites {
             let SPRITE_X= SPRITE_SIZES[sprite.size as usize][sprite.shape as usize][0];
             let SPRITE_Y = SPRITE_SIZES[sprite.size as usize][sprite.shape as usize][1];
-            let linesSinceOBJStart = self.vcount as u32 - sprite.y_coord as u32;
+            let linesSinceOBJStart = (self.vcount as u32 - sprite.y_coord as u32) & (SPRITE_Y as u32-1);
             
             assert!(!sprite.doubleSize); 
             //if sprite.doubleSize {
