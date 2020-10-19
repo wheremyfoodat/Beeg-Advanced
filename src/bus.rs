@@ -48,13 +48,15 @@ impl Bus {
 
     #[inline(always)]
     pub fn read8 (&self, address: u32) -> u8 {
-        match (address >> 24) & 0xF {
-            0 => self.mem.BIOS[address as usize & 0x3FFF as usize], // TODO: Don't mirror BIOS.
+        match address >> 24 {
+            0 => self.mem.BIOS[address as usize], // TODO: Don't mirror BIOS.
             2 => self.mem.eWRAM[(address & 0x3FFFF) as usize],
             3 => self.mem.iWRAM[(address & 0x7FFF) as usize],
             4 => self.readIO8(address),
             6 => self.ppu.VRAM[(address - 0x6000000) as usize],
             8 | 9 => self.mem.ROM[(address - 0x8000000) as usize],
+            0xA | 0xB => self.mem.ROM[(address - 0xA000000) as usize],
+            0xC | 0xD => self.mem.ROM[(address - 0xC000000) as usize],
             0xE => { // TODO: Add support for different backup media
                 if address == 0xE000000 {return 0xC2_u8}; // (FLASH STUB)
                 if address == 0xE000001 {return 0x9_u8}; // (FLASH STUB)
@@ -67,13 +69,13 @@ impl Bus {
 
     #[inline(always)]
     pub fn read16 (&self, address: u32) -> u16 {
-        assert!((address & 1) == 0);
+        debug_assert!((address & 1) == 0);
         let mut val: u16;
 
-        match (address >> 24) & 0xF { // these 4 bits show us which memory range the addr belongs to
+        match address >> 24 { // these 4 bits show us which memory range the addr belongs to
             0 => { // TODO: Don't mirror BIOS
                 val = self.mem.BIOS[(address & 0x3FFF) as usize] as u16;
-                val |= (self.mem.BIOS[((address & 0x3FFF) + 1) as usize] as u16) << 8;
+                val |= (self.mem.BIOS[((address) + 1) as usize] as u16) << 8;
             },
 
             2 => {
@@ -104,8 +106,18 @@ impl Bus {
             },
             
             8 | 9 => {
-                    val = self.mem.ROM[(address - 0x8000000) as usize] as u16;
-                    val |= (self.mem.ROM[(address - 0x8000000 + 1) as usize] as u16) << 8;
+                val = self.mem.ROM[(address - 0x8000000) as usize] as u16;
+                val |= (self.mem.ROM[(address - 0x8000000 + 1) as usize] as u16) << 8;
+            },
+
+            0xA | 0xB => {
+                val = self.mem.ROM[(address - 0xA000000) as usize] as u16;
+                val |= (self.mem.ROM[(address - 0xA000000 + 1) as usize] as u16) << 8;
+            },
+
+            0xC | 0xD => {
+                val = self.mem.ROM[(address - 0xC000000) as usize] as u16;
+                val |= (self.mem.ROM[(address - 0xC000000 + 1) as usize] as u16) << 8;
             },
             
             _ => panic!("16-bit read from unimplemented mem addr {:08X}\n", address)
@@ -119,12 +131,7 @@ impl Bus {
         debug_assert!((address & 3) == 0);
         let mut val: u32;
 
-        if address > 0xFFFFFFF { 
-            println!("Read from invalid memory");
-            return 0xFFFFFFFF
-        }
-
-        match (address >> 24) & 0xF { // these 4 bits show us which memory range the addr belongs to
+        match address >> 24 { // these 4 bits show us which memory range the addr belongs to
             0 => {
                 val = self.mem.BIOS[address as usize] as u32;
                 val |= (self.mem.BIOS[(address + 1) as usize] as u32) << 8;
@@ -170,12 +177,24 @@ impl Bus {
             },
             
             8 | 9 => {
-                if address & 0xFFFFFF >= self.mem.ROM.len() as u32 {println!("OoB ROM access"); return 0}
-
                 val = self.mem.ROM[(address - 0x8000000) as usize] as u32;
                 val |= (self.mem.ROM[(address - 0x8000000 + 1) as usize] as u32) << 8;
                 val |= (self.mem.ROM[(address - 0x8000000 + 2) as usize] as u32) << 16;
                 val |= (self.mem.ROM[(address - 0x8000000 + 3) as usize] as u32) << 24;
+            },
+
+            0xA | 0xB => {
+                val = self.mem.ROM[(address - 0xA000000) as usize] as u32;
+                val |= (self.mem.ROM[(address - 0xA000000 + 1) as usize] as u32) << 8;
+                val |= (self.mem.ROM[(address - 0xA000000 + 2) as usize] as u32) << 16;
+                val |= (self.mem.ROM[(address - 0xA000000 + 3) as usize] as u32) << 24;
+            },
+
+            0xC | 0xD => {
+                val = self.mem.ROM[(address - 0xC000000) as usize] as u32;
+                val |= (self.mem.ROM[(address - 0xC000000 + 1) as usize] as u32) << 8;
+                val |= (self.mem.ROM[(address - 0xC000000 + 2) as usize] as u32) << 16;
+                val |= (self.mem.ROM[(address - 0xC000000 + 3) as usize] as u32) << 24;
             },
 
             _=> panic!("32-bit read from unimplemented mem addr {:08X}\n", address)
@@ -186,7 +205,7 @@ impl Bus {
 
     #[inline(always)]
     pub fn write8 (&mut self, address: u32, val: u8) {
-        match (address >> 24) & 0xF {
+        match address >> 24 {
             0 => {},
             2 => self.mem.eWRAM[(address & 0x3FFFF) as usize] = val,
             3 => self.mem.iWRAM[(address & 0x7FFF) as usize] = val,
@@ -201,7 +220,7 @@ impl Bus {
     pub fn write16 (&mut self, address: u32, val: u16) {
         debug_assert!((address & 1) == 0); 
 
-        match (address >> 24) & 0xF { // these 4 bits show us which memory range the addr belongs to
+        match address >> 24 { // these 4 bits show us which memory range the addr belongs to
             0 => {},
 
             2 => {
@@ -240,7 +259,7 @@ impl Bus {
     #[inline(always)]
     pub fn write32 (&mut self, address: u32, val: u32) {
         debug_assert!((address & 3) == 0); 
-        match (address >> 24) & 0xF { // these 4 bits show us which memory range the addr belongs to
+        match address >> 24 { // these 4 bits show us which memory range the addr belongs to
             2 => {
                 self.mem.eWRAM[(address & 0x3FFFF) as usize] = (val & 0xFF) as u8;
                 self.mem.eWRAM[((address + 1) & 0x3FFFF) as usize] = (val >> 8) as u8;
@@ -325,6 +344,7 @@ impl Bus {
 
     pub fn writeIO8 (&mut self, address: u32, val: u8) {
         match address {
+            0x4000008..=0x400000F => {panic!("a");}
             0x4000070 => println!("Wrote to SOUND3CNT!"),
             0x4000084 => println!("Wrote to SOUNDCNT_X!"),
             0x4000208 => {

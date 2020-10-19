@@ -21,6 +21,17 @@ impl PPU {
         }
     }
 
+    pub fn renderMode1(&mut self) {
+        self.fetchSprites();
+
+        for prio in 0..4 {
+            self.renderSprites(prio);
+            if self.bg_controls[0].getPriority() == prio {self.renderNonAffineBG(0)}
+            if self.bg_controls[1].getPriority() == prio {self.renderNonAffineBG(1)}
+            if self.bg_controls[2].getPriority() == prio {self.renderAffineBG(2)}
+        }
+    }
+
     pub fn renderMode3(&mut self) { // Mode 3 stub
         let mut mapDataBase = self.vcount as u32 * 240 * 2;
         let mut bufferIndex = self.vcount as usize * 240 * 4;
@@ -122,6 +133,10 @@ impl PPU {
 
             self.currentLine[x as usize] = pixel as u16;
         }
+    }
+
+    pub fn renderAffineBG (&mut self, bg_num: usize) {
+
     }
 
     // simple stub for AW
