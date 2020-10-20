@@ -50,14 +50,17 @@ impl Bus {
     pub fn read8 (&self, address: u32) -> u8 {
         match address >> 24 {
             0 => self.mem.BIOS[address as usize], // TODO: Don't mirror BIOS.
+            1 => {println!("Read from unused mem. Todo: remove this msg"); return 0;}
             2 => self.mem.eWRAM[(address & 0x3FFFF) as usize],
             3 => self.mem.iWRAM[(address & 0x7FFF) as usize],
             4 => self.readIO8(address),
+            5 => self.ppu.paletteRAM[address as usize & 0x3FF],
             6 => self.ppu.VRAM[(address - 0x6000000) as usize],
+            7 => self.ppu.OAM[address as usize & 0x3FF],
             8 | 9 => self.mem.ROM[(address - 0x8000000) as usize],
             0xA | 0xB => self.mem.ROM[(address - 0xA000000) as usize],
             0xC | 0xD => self.mem.ROM[(address - 0xC000000) as usize],
-            0xE => { // TODO: Add support for different backup media
+            0xE | 0xF => { // TODO: Add support for different backup media
                 if address == 0xE000000 {return 0xC2_u8}; // (FLASH STUB)
                 if address == 0xE000001 {return 0x9_u8}; // (FLASH STUB)
                 self.mem.SRAM[(address & 0xFFFF) as usize]
@@ -75,8 +78,10 @@ impl Bus {
         match address >> 24 { // these 4 bits show us which memory range the addr belongs to
             0 => { // TODO: Don't mirror BIOS
                 val = self.mem.BIOS[(address & 0x3FFF) as usize] as u16;
-                val |= (self.mem.BIOS[((address) + 1) as usize] as u16) << 8;
+                val |= (self.mem.BIOS[((address & 0x3FFF) + 1) as usize] as u16) << 8;
             },
+
+            1 => {println!("Read from unused mem. Todo: remove this msg"); return 0;}
 
             2 => {
                 val = self.mem.eWRAM[(address & 0x3FFFF) as usize] as u16;
@@ -119,6 +124,11 @@ impl Bus {
                 val = self.mem.ROM[(address - 0xC000000) as usize] as u16;
                 val |= (self.mem.ROM[(address - 0xC000000 + 1) as usize] as u16) << 8;
             },
+
+            0xE | 0xF => {
+                val = self.mem.SRAM[(address & 0xFFFF) as usize] as u16;
+                val |= (self.mem.SRAM[((address & 0xFFFF) + 1) as usize] as u16) << 8;
+            },
             
             _ => panic!("16-bit read from unimplemented mem addr {:08X}\n", address)
         }
@@ -138,6 +148,8 @@ impl Bus {
                 val |= (self.mem.BIOS[(address + 2) as usize] as u32) << 16;
                 val |= (self.mem.BIOS[(address + 3) as usize] as u32) << 24;
             },
+
+            1 => {println!("Read from unused mem. Todo: remove this msg"); return 0;}
 
             2 => {
                 val = self.mem.eWRAM[(address & 0x3FFFF) as usize] as u32;
@@ -197,6 +209,13 @@ impl Bus {
                 val |= (self.mem.ROM[(address - 0xC000000 + 3) as usize] as u32) << 24;
             },
 
+            0xE | 0xF => {
+                val = self.mem.SRAM[(address & 0xFFFF) as usize] as u32;
+                val |= (self.mem.SRAM[((address & 0xFFFF) + 1) as usize] as u32) << 8;
+                val |= (self.mem.SRAM[((address & 0xFFFF) + 2) as usize] as u32) << 16;
+                val |= (self.mem.SRAM[((address & 0xFFFF) + 3) as usize] as u32) << 24;
+            },
+
             _=> panic!("32-bit read from unimplemented mem addr {:08X}\n", address)
         }
 
@@ -210,8 +229,11 @@ impl Bus {
             2 => self.mem.eWRAM[(address & 0x3FFFF) as usize] = val,
             3 => self.mem.iWRAM[(address & 0x7FFF) as usize] = val,
             4 => self.writeIO8(address, val),
+            5 => self.ppu.paletteRAM[address as usize & 0x3FF] = val,
             6 => println!("8-bit write to VRAM!"),
-            0xE => self.mem.SRAM[(address & 0xFFFF) as usize] = val,
+            7 => self.ppu.OAM[address as usize & 0x3FF] = val,
+            8..=0xD => {}
+            0xE | 0xF => self.mem.SRAM[(address & 0xFFFF) as usize] = val,
             _ => todo!("Unimplemented 8-bit write at address {:08X}", address)
         }
     }
@@ -249,9 +271,7 @@ impl Bus {
                 self.ppu.OAM[(address & 0x3FF) as usize] = val as u8;
                 self.ppu.OAM[((address + 1) & 0x3FF) as usize] = (val >> 8) as u8;
             }
-
-            8 => println!("16-bit write {:08X} to ROM address {:08X}", val, address),
-
+            8..=0xD => {}
             _ => {}//todo!("Unimplemented 16-bit write to addr {:08X}", address)
         }
     }
@@ -275,10 +295,10 @@ impl Bus {
             }
 
             5 => {
-                self.ppu.paletteRAM[(address - 0x5000000) as usize] = (val & 0xFF) as u8;
-                self.ppu.paletteRAM[(address - 0x5000000 + 1) as usize] = (val >> 8) as u8;
-                self.ppu.paletteRAM[(address - 0x5000000 + 2) as usize] = (val >> 16) as u8;
-                self.ppu.paletteRAM[(address - 0x5000000 + 3) as usize] = (val >> 24) as u8;
+                self.ppu.paletteRAM[(address & 0x3FF) as usize] = (val & 0xFF) as u8;
+                self.ppu.paletteRAM[((address & 0x3FF) + 1) as usize] = (val >> 8) as u8;
+                self.ppu.paletteRAM[((address & 0x3FF) + 2) as usize] = (val >> 16) as u8;
+                self.ppu.paletteRAM[((address & 0x3FF) + 3) as usize] = (val >> 24) as u8;
             }
 
             6 => {
@@ -296,8 +316,8 @@ impl Bus {
             }
 
             4 => self.writeIO32(address, val),
-            8 => println!("32-bit write to ROM at {:08X}", address),
-            _ => println!("32-bit write to unimplemented mem addr {:08X}\n", address)
+            8..=0xD => {}
+            _ => {}//println!("32-bit write to unimplemented mem addr {:08X}\n", address)
         }
     }
 

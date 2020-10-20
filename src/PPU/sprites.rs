@@ -88,6 +88,7 @@ impl PPU {
 
             let size = (attr1 >> 14) & 3;
             let shape = (attr0 >> 14) & 3;
+            if shape == 3 {println!("OBJ with shape 3"); continue;}
 
             if x_coord >= 240 {x_coord -= 512}
             if y_coord >= 160 {y_coord -= 256}
@@ -139,7 +140,7 @@ impl PPU {
                     tile_addr += sprite.tile_num as u32 * 64;
                     //tile_addr += ((x as u32) >> 3) * 64;
                     //tile_addr += ((self.vcount as u32 & 31) >> 3) * 0x800;
-                    panic!("We don't have 8bpp sprites ree");
+                    //panic!("We don't have 8bpp sprites ree");
                     tile_addr += tile_y as u32 * 8;
                     tile_addr += tile_x as u32;
                     
