@@ -74,6 +74,7 @@ impl Eq for Sprite  { }
 impl PPU {
     pub fn fetchSprites(&mut self) {
         self.sprites = vec![];
+        if !self.dispcnt.getOBJEnable() {return;}
 
         for i in (0..OAM_MAX).step_by(8) {
             let attr0 = self.readOAM16(i);
@@ -141,11 +142,13 @@ impl PPU {
                     //tile_addr += ((x as u32) >> 3) * 64;
                     //tile_addr += ((self.vcount as u32 & 31) >> 3) * 0x800;
                     //panic!("We don't have 8bpp sprites ree");
-                    tile_addr += tile_y as u32 * 8;
-                    tile_addr += tile_x as u32;
+                    tile_addr += (tile_y as u32 & 7) * 8;
+                    tile_addr += tile_x as u32 & 7;
+                    tile_addr += ((tile_x as u32) >> 3) * 64;
 
                     if self.dispcnt.OBJ1DMapping() { 
-                        panic!("8bpp 1D sprite")
+                        tile_addr += (tile_y as u32 / 8) * 64 * (SPRITE_X as u32 >> 3);
+                        //panic!("8bpp 1D sprite")
                     }
 
                     else {

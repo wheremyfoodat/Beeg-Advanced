@@ -375,6 +375,7 @@ impl Bus {
 
     pub fn writeIO8 (&mut self, address: u32, val: u8) {
         match address {
+            0x4000000..=0x4000003 => panic!("Unhandled 8-bit DISPCNT write"),
             0x4000008..=0x400000F => {panic!("Unhandled 8-bit bgcnt write");}
             0x4000070 => println!("Wrote to SOUND3CNT!"),
             0x4000084 => println!("Wrote to SOUNDCNT_X!"),
@@ -391,7 +392,7 @@ impl Bus {
         match address {
             0x4000000 => self.ppu.dispcnt.setRaw(val),
             0x4000004 => {
-                self.ppu.dispstat.setRaw(val & 0xFF38);
+                self.ppu.dispstat.setRaw((val & 0xFF38) | (self.ppu.dispstat.getRaw() & 0x7));
                 self.ppu.compareLYC();
                 self.scheduler.pushEvent(EventTypes::PollInterrupts, 0)
             },

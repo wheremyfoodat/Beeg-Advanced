@@ -22,7 +22,7 @@ bitfield!{
     pub OBJ1DMapping,          _:        6; 
     pub getForcedBlank,        _:        7, 7;
     pub getBGEnableBits,       _:        11, 8;
-    pub getOBJEnable,          _:        12, 12;
+    pub getOBJEnable,          _:        12;
     pub getWindowEnableBits,   _:        14, 13;
     pub getOBJWindowEnable,    _:        15, 15;
 }
