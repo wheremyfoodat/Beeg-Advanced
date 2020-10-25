@@ -102,6 +102,7 @@ impl Bus {
 
         else {
             self.dmaChannels[channel].status = DMAChannelStatus::Inactive;
+            self.dmaChannels[channel].controlReg.DMAEnable(false);
         }
     }
 

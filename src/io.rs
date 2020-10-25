@@ -72,7 +72,7 @@ bitfield!{
     pub getGamepakDRQ,        _     :    11;
     pub getDMAStartTiming,    _     :    13, 12;
     pub shouldFireIRQ,        _     :    14;
-    pub isDMAEnabled,         _     :    15; 
+    pub isDMAEnabled, DMAEnable     :    15; 
 }
 
 bitfield! {

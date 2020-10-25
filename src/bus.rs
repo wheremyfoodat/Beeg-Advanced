@@ -49,7 +49,7 @@ impl Bus {
     #[inline(always)]
     pub fn read8 (&self, address: u32) -> u8 {
         match address >> 24 {
-            0 => self.mem.BIOS[address as usize], // TODO: Don't mirror BIOS.
+            0 => self.mem.BIOS[address as usize & 0x3FFF], // TODO: Don't mirror BIOS.
             1 => {println!("Read from unused mem. Todo: remove this msg"); return 0;}
             2 => self.mem.eWRAM[(address & 0x3FFFF) as usize],
             3 => self.mem.iWRAM[(address & 0x7FFF) as usize],
@@ -357,7 +357,7 @@ impl Bus {
             0x4000202 => self.getIF(),
             0x4000204 => self.waitcnt,
             0x4000208 => self.ime as u16,
-            0x40000DE => self.dmaChannels[0].controlReg.getRaw(),
+            //0x40000DE => self.dmaChannels[0].controlReg.getRaw(),
             _ => 0// {println!("Unimplemented 16-bit read from MMIO address {:08X}", address); 0}
         }
     }
