@@ -60,10 +60,11 @@ impl GBA {
                 std::process::exit(0);
             }
         }
-        
+    /*
         if sfml::window::Key::is_pressed(sfml::window::Key::D) {
             self.cpu.logState();
         }
+    */
         //println!("Frame time: {}ms", start.elapsed().as_millis());  
         // println!("FPS: {}", 16.0 / start.elapsed().as_millis() as f64 * 60.0);              
 

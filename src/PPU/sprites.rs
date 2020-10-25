@@ -104,7 +104,7 @@ impl PPU {
             } 
         }
 
-        self.sprites.sort(); 
+        //self.sprites.sort(); 
     }
 
     pub fn renderSprites(&mut self, prio: u16) { // TODO: Account for OBJ priority
@@ -137,14 +137,22 @@ impl PPU {
                 let mut pixel: u8;
                 
                 if sprite.is8bpp {
-                    tile_addr += sprite.tile_num as u32 * 64;
+                    tile_addr += (sprite.tile_num >> 1) as u32 * 64;
                     //tile_addr += ((x as u32) >> 3) * 64;
                     //tile_addr += ((self.vcount as u32 & 31) >> 3) * 0x800;
                     //panic!("We don't have 8bpp sprites ree");
                     tile_addr += tile_y as u32 * 8;
                     tile_addr += tile_x as u32;
+
+                    if self.dispcnt.OBJ1DMapping() { 
+                        panic!("8bpp 1D sprite")
+                    }
+
+                    else {
+                        panic!("8bpp 2D sprite")
+                    }
                     
-                    pixel = 0//self.VRAM[tile_addr as usize]
+                    pixel = self.VRAM[tile_addr as usize]
                 }
                 
                 else {
@@ -154,7 +162,7 @@ impl PPU {
                     
                     tile_addr += ((tile_x as u32) >> 3) * 32;
                     
-                    if self.dispcnt.OBJ1DMapping() { // TODO: Fix whatever in here breaks Mother 3
+                    if self.dispcnt.OBJ1DMapping() { 
                         tile_addr += (tile_y as u32 / 8) * 32 * (SPRITE_X as u32 >> 3);
                     }
 

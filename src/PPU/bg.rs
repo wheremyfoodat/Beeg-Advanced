@@ -136,7 +136,7 @@ impl PPU {
     }
 
     pub fn renderAffineBG (&mut self, bg_num: usize) {
-
+        self.renderNonAffineBG(bg_num);
     }
 
     // simple stub for AW

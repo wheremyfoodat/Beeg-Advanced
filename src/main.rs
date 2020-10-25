@@ -15,6 +15,7 @@ pub mod irqs;
 pub mod io;
 pub mod timers;
 pub mod joypad;
+pub mod cartridge;
 pub mod Thumb;
 pub mod barrelShifter;
 pub mod helpers;
@@ -25,7 +26,7 @@ use sfml::graphics::*;
 use sfml::window::*; // TODO: Not import the entire thing
 
 fn main() {
-    let gameName = "Pokemon Fire Red";
+    let gameName = "Metroid Fusion";
     let mut gba = GBA::new(format!("ROMs/{}.gba", gameName));
     gba.init();
 

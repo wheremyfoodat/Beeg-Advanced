@@ -55,7 +55,11 @@ impl Bus {
             3 => self.mem.iWRAM[(address & 0x7FFF) as usize],
             4 => self.readIO8(address),
             5 => self.ppu.paletteRAM[address as usize & 0x3FF],
-            6 => self.ppu.VRAM[(address - 0x6000000) as usize],
+            6 => {
+                let mut vram_addr = address as usize & 0x1FFFF;
+                if vram_addr > 0x17FFF {vram_addr -= 0x8000} // handle VRAM mirroring
+                self.ppu.VRAM[vram_addr]
+            }
             7 => self.ppu.OAM[address as usize & 0x3FF],
             8 | 9 => self.mem.ROM[(address - 0x8000000) as usize],
             0xA | 0xB => self.mem.ROM[(address - 0xA000000) as usize],
@@ -75,7 +79,7 @@ impl Bus {
         debug_assert!((address & 1) == 0);
         let mut val: u16;
 
-        match address >> 24 { // these 4 bits show us which memory range the addr belongs to
+        match address >> 24 { // these 8 bits show us which memory range the addr belongs to
             0 => { // TODO: Don't mirror BIOS
                 val = self.mem.BIOS[(address & 0x3FFF) as usize] as u16;
                 val |= (self.mem.BIOS[((address & 0x3FFF) + 1) as usize] as u16) << 8;
@@ -141,7 +145,7 @@ impl Bus {
         debug_assert!((address & 3) == 0);
         let mut val: u32;
 
-        match address >> 24 { // these 4 bits show us which memory range the addr belongs to
+        match address >> 24 { // these 8 bits show us which memory range the addr belongs to
             0 => {
                 val = self.mem.BIOS[address as usize] as u32;
                 val |= (self.mem.BIOS[(address + 1) as usize] as u32) << 8;
@@ -242,7 +246,7 @@ impl Bus {
     pub fn write16 (&mut self, address: u32, val: u16) {
         debug_assert!((address & 1) == 0); 
 
-        match address >> 24 { // these 4 bits show us which memory range the addr belongs to
+        match address >> 24 { // these 8 bits show us which memory range the addr belongs to
             0 => {},
 
             2 => {
@@ -263,8 +267,13 @@ impl Bus {
             }
 
             6 => {
-                self.ppu.VRAM[(address - 0x6000000) as usize] = (val & 0xFF) as u8;
-                self.ppu.VRAM[(address - 0x6000000 + 1) as usize] = (val >> 8) as u8;
+                let mut vram_addr = address as usize & 0x1FFFF;
+                if vram_addr > 0x17FFF { // handle VRAM mirroring
+                    vram_addr -= 0x8000;
+                }
+
+                self.ppu.VRAM[vram_addr] = (val & 0xFF) as u8;
+                self.ppu.VRAM[vram_addr + 1] = (val >> 8) as u8;
             }
 
             7 => {
@@ -279,7 +288,7 @@ impl Bus {
     #[inline(always)]
     pub fn write32 (&mut self, address: u32, val: u32) {
         debug_assert!((address & 3) == 0); 
-        match address >> 24 { // these 4 bits show us which memory range the addr belongs to
+        match address >> 24 { // these 8 bits show us which memory range the addr belongs to
             2 => {
                 self.mem.eWRAM[(address & 0x3FFFF) as usize] = (val & 0xFF) as u8;
                 self.mem.eWRAM[((address + 1) & 0x3FFFF) as usize] = (val >> 8) as u8;
@@ -326,7 +335,7 @@ impl Bus {
             0x4000000 => self.ppu.dispcnt.getRaw() as u8,
             0x4000006 => self.ppu.vcount as u8,
             0x4000089 => (self.soundbiasStub >> 8) as u8,
-            _ => 0xFF//{println!("Unimplemented 8-bit read from MMIO address {:08X}", address); 0xFF}
+            _ => 0//{println!("Unimplemented 8-bit read from MMIO address {:08X}", address); 0}
         }
     }
 
@@ -348,6 +357,7 @@ impl Bus {
             0x4000202 => self.getIF(),
             0x4000204 => self.waitcnt,
             0x4000208 => self.ime as u16,
+            0x40000DE => self.dmaChannels[0].controlReg.getRaw(),
             _ => 0// {println!("Unimplemented 16-bit read from MMIO address {:08X}", address); 0}
         }
     }
@@ -358,13 +368,14 @@ impl Bus {
             0x4000004 => (self.ppu.dispstat.getRaw() as u32) | ((self.ppu.vcount as u32) << 16),
             0x4000200 => ((self.getIF() as u32) << 16) | self.ie as u32,
             0x4000208 => self.ime as u32,
+            0x40000DC => (self.dmaChannels[3].controlReg.getRaw() as u32) << 16,
             _ => 0//{println!("Unimplemented 32-bit read from MMIO address {:08X}", address); 0}
         }
     }
 
     pub fn writeIO8 (&mut self, address: u32, val: u8) {
         match address {
-            0x4000008..=0x400000F => {panic!("a");}
+            0x4000008..=0x400000F => {panic!("Unhandled 8-bit bgcnt write");}
             0x4000070 => println!("Wrote to SOUND3CNT!"),
             0x4000084 => println!("Wrote to SOUNDCNT_X!"),
             0x4000208 => {
@@ -462,6 +473,11 @@ impl Bus {
             0x40000D0 => self.writeDMACNT32(2, val),
             0x40000DC => self.writeDMACNT32(3, val),
 
+            // PPU
+
+            0x4000008 => { self.ppu.bg_controls[0].setRaw(val as u16); self.ppu.bg_controls[1].setRaw((val >> 16) as u16) },
+            0x400000C => { self.ppu.bg_controls[2].setRaw(val as u16); self.ppu.bg_controls[3].setRaw((val >> 16) as u16) },
+
             0x4000088 => { self.soundbiasStub = val; println!("Wrote to SOUNDBIAS!") },
             0x4000200 => {
                 self.ie = val as u16;
@@ -483,5 +499,6 @@ impl Bus {
     pub fn setIF(&mut self, val: u16) {
         self.ppu.interruptFlags = val & 7;
         self.dma_irq_requests = (val >> 8) & 0xF;
+        self.timers.timer_interrupt_requests = (val >> 3) & 0xF;
     }
 }
