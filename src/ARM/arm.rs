@@ -78,12 +78,24 @@ impl CPU {
                 self.armLUT[x] = Self::ARM_handleUndefined
             }
 
+            else if (x >> 9) == 0b001 && ((x >> 4) & 1 == 1){
+                self.armLUT[x] = Self::ARM_handleDataProcessingImmWithFlags;
+            }
+
             else if (x >> 9) == 0b001 {
                 self.armLUT[x] = Self::ARM_handleDataProcessingImm;
             }
 
+            else if (x >> 9) == 0 && (x & 1) == 0 && ((x >> 4) & 1 == 1) {
+                self.armLUT[x] = Self::ARM_handleDataProcessingImmShiftWithFlags;
+            }
+
             else if (x >> 9) == 0 && (x & 1) == 0 {
                 self.armLUT[x] = Self::ARM_handleDataProcessingImmShift;
+            }
+
+            else if (x >> 9) == 0 && ((x >> 4) & 1 == 1) {
+                self.armLUT[x] = Self::ARM_handleDataProcessingRegisterWithFlags;
             }
 
             else if (x >> 9) == 0 {

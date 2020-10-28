@@ -8,20 +8,33 @@ use crate::isBitSet;
 // It looks like shit
 
 impl CPU {
-    pub fn ARM_handleDataProcessingImm(&mut self, bus: &mut Bus, instruction: u32) {
+    pub fn ARM_handleDataProcessingImm(&mut self, bus: &mut Bus, instruction: u32) { // DP imm instructions with S = 0
         let imm = instruction & 0xFF;
         let rot_imm = (instruction >> 8) & 0xF;
         let operand1 = self.getGPR((instruction >> 16) & 0xF);
 
         let rdIndex = (instruction >> 12) & 0xF;
-        let s = isBitSet!(instruction, 20);
         let oldCarry = self.cpsr.getCarry();
 
-        let affectFlags = s && rdIndex != 15;
+        let operand2 = self.ROR(imm, rot_imm * 2, false);
+        let opcode = (instruction >> 21) & 0xF;
+
+        self.executeDP(opcode, rdIndex, operand1, operand2, false, oldCarry, bus)
+    }
+
+    pub fn ARM_handleDataProcessingImmWithFlags(&mut self, bus: &mut Bus, instruction: u32) {
+        let imm = instruction & 0xFF;
+        let rot_imm = (instruction >> 8) & 0xF;
+        let operand1 = self.getGPR((instruction >> 16) & 0xF);
+
+        let rdIndex = (instruction >> 12) & 0xF;
+        let oldCarry = self.cpsr.getCarry();
+
+        let affectFlags = rdIndex != 15;
         let operand2 = self.ROR(imm, rot_imm * 2, affectFlags);
         let opcode = (instruction >> 21) & 0xF;
 
-        if s && rdIndex == 15 {
+        if rdIndex == 15 {
             self.setCPSR(self.spsr.getRaw());
             bus.scheduler.pushEvent(EventTypes::PollInterrupts, 0); // Since CPSR got updated, poll interrupts again
             //println!("IRQ/SWI return")
@@ -34,7 +47,6 @@ impl CPU {
         self.gprs[15] += 4; // PC is 3 steps ahead instead of 2 in this type of instr.
                             // We stub it by making it go an extra step ahead during operand fetch
 
-        let s = isBitSet!(instruction, 20);
         let rdIndex = (instruction >> 12) & 0xF; 
         let rnIndex = (instruction >> 16) & 0xF;
         let rmIndex = instruction & 0xF;    
@@ -43,15 +55,42 @@ impl CPU {
         let shift = (instruction >> 5) & 3;
         let shiftAmount = self.getGPR((instruction >> 8) & 0xF) & 0xFF;
         let opcode = (instruction >> 21) & 0xF;
-        let affectFlags = s && rdIndex != 15;
-        debug_assert!(!(s && rdIndex == 15));
 
         let rn = self.getGPR(rnIndex);
         let mut rm = self.getGPR(rmIndex);
 
         self.gprs[15] -= 4; // Undo what we did in the first line
 
-        if s && rdIndex == 15 {
+        match shift {
+            0 => rm = self.LSL(rm, shiftAmount, false),
+            1 => rm = self.LSR(rm, shiftAmount, false),
+            2 => rm = self.ASR(rm, shiftAmount, false),
+            _ => rm = self.ROR(rm, shiftAmount, false)
+        }
+
+        self.executeDP(opcode, rdIndex, rn, rm, false, oldCarry, bus)
+    }
+
+    pub fn ARM_handleDataProcessingRegisterWithFlags (&mut self, bus: &mut Bus, instruction: u32) {
+        self.gprs[15] += 4; // PC is 3 steps ahead instead of 2 in this type of instr.
+                            // We stub it by making it go an extra step ahead during operand fetch
+
+        let rdIndex = (instruction >> 12) & 0xF; 
+        let rnIndex = (instruction >> 16) & 0xF;
+        let rmIndex = instruction & 0xF;    
+        let oldCarry = self.cpsr.getCarry();
+
+        let shift = (instruction >> 5) & 3;
+        let shiftAmount = self.getGPR((instruction >> 8) & 0xF) & 0xFF;
+        let opcode = (instruction >> 21) & 0xF;
+        let affectFlags = rdIndex != 15;
+
+        let rn = self.getGPR(rnIndex);
+        let mut rm = self.getGPR(rmIndex);
+
+        self.gprs[15] -= 4; // Undo what we did in the first line
+
+        if rdIndex == 15 {
             bus.scheduler.pushEvent(EventTypes::PollInterrupts, 0); // Since CPSR got updated, poll interrupts again
             self.setCPSR(self.spsr.getRaw());
             //println!("IRQ/SWI return")
@@ -68,7 +107,6 @@ impl CPU {
     }
 
     pub fn ARM_handleDataProcessingImmShift (&mut self, bus: &mut Bus, instruction: u32) {
-        let s = isBitSet!(instruction, 20);
         let rdIndex = (instruction >> 12) & 0xF; 
         let rnIndex = (instruction >> 16) & 0xF;
         let rmIndex = instruction & 0xF;    
@@ -77,8 +115,6 @@ impl CPU {
         let shift = (instruction >> 5) & 3;
         let mut shiftImm = (instruction >> 7) & 31;
         let opcode = (instruction >> 21) & 0xF;
-        let affectFlags = s && rdIndex != 15;
-       // debug_assert!(!(s && rdIndex == 15));
 
         let rn = self.getGPR(rnIndex);
         let mut rm = self.getGPR(rmIndex);
@@ -87,10 +123,45 @@ impl CPU {
             shiftImm = 32;
         }
 
-        if s && rdIndex == 15 {
+        match shift {
+            0 => rm = self.LSL(rm, shiftImm, false),
+            1 => rm = self.LSR(rm, shiftImm, false),
+            2 => rm = self.ASR(rm, shiftImm, false),
+            _ => {
+                if shiftImm != 0 {
+                    rm = self.ROR(rm, shiftImm, false);
+                }
+
+                else {
+                    rm = self.RRX(rm, false);
+                }
+            }
+        }
+
+        self.executeDP(opcode, rdIndex, rn, rm, false, oldCarry, bus)
+    }
+
+    pub fn ARM_handleDataProcessingImmShiftWithFlags (&mut self, bus: &mut Bus, instruction: u32) {
+        let rdIndex = (instruction >> 12) & 0xF; 
+        let rnIndex = (instruction >> 16) & 0xF;
+        let rmIndex = instruction & 0xF;    
+        let oldCarry = self.cpsr.getCarry();
+
+        let shift = (instruction >> 5) & 3;
+        let mut shiftImm = (instruction >> 7) & 31;
+        let opcode = (instruction >> 21) & 0xF;
+        let affectFlags = rdIndex != 15;
+
+        let rn = self.getGPR(rnIndex);
+        let mut rm = self.getGPR(rmIndex);
+
+        if shiftImm == 0 && (shift == 1 || shift == 2) { // LSR #0 and ASR #0 become LSR #32 and ASR #32 instead
+            shiftImm = 32;
+        }
+
+        if rdIndex == 15 {
             bus.scheduler.pushEvent(EventTypes::PollInterrupts, 0); // Since CPSR got updated, poll interrupts again
             self.setCPSR(self.spsr.getRaw());
-            //println!("IRQ/SWI return")
         }
 
         match shift {
@@ -111,6 +182,7 @@ impl CPU {
         self.executeDP(opcode, rdIndex, rn, rm, affectFlags, oldCarry, bus)
     }
 
+    #[inline(always)]
     pub fn executeDP (&mut self, opcode: u32, rdIndex: u32, operand1: u32, operand2: u32, affectFlags: bool, oldCarry: u32, bus: &mut Bus) {
         match opcode {
             0   => self.ARM_AND(rdIndex, operand1, operand2, affectFlags, bus),
@@ -132,6 +204,7 @@ impl CPU {
         }
     }
     
+    #[inline(always)]
     pub fn ARM_MOV(&mut self, rdIndex: u32, operand2: u32, affectFlags: bool, bus: &mut Bus) {
         self.setGPR(rdIndex, operand2, bus);
         if affectFlags {
@@ -139,6 +212,7 @@ impl CPU {
         }
     }
 
+    #[inline(always)]
     pub fn ARM_MVN(&mut self, rdIndex: u32, operand2: u32, affectFlags: bool, bus: &mut Bus) {
         let res = !operand2;
         self.setGPR(rdIndex, res, bus);
@@ -147,41 +221,49 @@ impl CPU {
         }
     }
 
+    #[inline(always)]
     pub fn ARM_ADD(&mut self, rdIndex: u32, operand1: u32, operand2: u32, affectFlags: bool, bus: &mut Bus) {
         let res = self._ADD(operand1, operand2, affectFlags);
         self.setGPR(rdIndex, res , bus);
     }
 
+    #[inline(always)]
     pub fn ARM_BIC(&mut self, rdIndex: u32, operand1: u32, operand2: u32, affectFlags: bool, bus: &mut Bus) {
         let res = self._BIC(operand1, operand2, affectFlags);
         self.setGPR(rdIndex, res , bus);
     }
 
+    #[inline(always)]
     pub fn ARM_ADC(&mut self, rdIndex: u32, operand1: u32, operand2: u32, affectFlags: bool, oldCarry: u32, bus: &mut Bus) {
         let res = self._ADC(operand1, operand2, affectFlags, oldCarry);
         self.setGPR(rdIndex, res , bus);
     }
 
+    #[inline(always)]
     pub fn ARM_SBC(&mut self, rdIndex: u32, operand1: u32, operand2: u32, affectFlags: bool, oldCarry: u32, bus: &mut Bus) {
         let res = self._SBC(operand1, operand2, affectFlags, oldCarry);
         self.setGPR(rdIndex, res , bus);
     }
 
+    #[inline(always)]
     pub fn ARM_SUB(&mut self, rdIndex: u32, operand1: u32, operand2: u32, affectFlags: bool, bus: &mut Bus) {
         let res = self._SUB(operand1, operand2, affectFlags);
         self.setGPR(rdIndex, res , bus);
     }
 
+    #[inline(always)]
     pub fn ARM_AND(&mut self, rdIndex: u32, operand1: u32, operand2: u32, affectFlags: bool, bus: &mut Bus) {
         let res = self._AND(operand1, operand2, affectFlags);
         self.setGPR(rdIndex, res, bus);
     }
 
+    #[inline(always)]
     pub fn ARM_ORR(&mut self, rdIndex: u32, operand1: u32, operand2: u32, affectFlags: bool, bus: &mut Bus) {
         let res = self._ORR(operand1, operand2, affectFlags);
         self.setGPR(rdIndex, res, bus);
     }
 
+    #[inline(always)]
     pub fn ARM_EOR(&mut self, rdIndex: u32, operand1: u32, operand2: u32, affectFlags: bool, bus: &mut Bus) {
         let res = self._EOR(operand1, operand2, affectFlags);
         self.setGPR(rdIndex, res, bus);

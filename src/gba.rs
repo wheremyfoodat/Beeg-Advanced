@@ -32,12 +32,12 @@ impl GBA {
 
     pub fn step(&mut self) {
         if !self.bus.halted { // Check HALTCNT
-            self.advanceScheduler(2);
+            self.advanceScheduler(1);
             self.cpu.step(&mut self.bus);
         }
 
         else {
-            self.advanceScheduler(2);
+            self.advanceScheduler(1);
         }
     }
 
