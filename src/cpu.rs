@@ -101,24 +101,26 @@ impl CPU {
 
     #[inline(always)]
     pub fn setGPR(&mut self, gpr: u32, val: u32, bus: &mut Bus) {
-        match gpr {
-            15 => {
-                if self.isInARMState() { // TODO: Fix this hack-ish pipeline thing
-                    self.gprs[15] = (val - 4) & !3;
-                    self.pipeline[1] = bus.read32(self.gprs[15] + 4); 
-                    self.pipeline[2] = bus.read32(self.gprs[15] + 8);
+        if gpr != 15 {
+            self.gprs[gpr as usize] = val;
+        }
 
-                    self.gprs[15] += 8;
-                }
-                else {
-                    self.gprs[15] = (val - 2) & !1;
-                    self.pipeline[1] = bus.read16(self.gprs[15] + 2) as u32; 
-                    self.pipeline[2] = bus.read16(self.gprs[15] + 4) as u32;
+        else {
+            if self.isInARMState() { // TODO: Fix this hack-ish pipeline thing
+                self.gprs[15] = (val - 4) & !3;
+                self.pipeline[1] = bus.read32(self.gprs[15] + 4); 
+                self.pipeline[2] = bus.read32(self.gprs[15] + 8);
 
-                    self.gprs[15] += 4;
-                }
+                self.gprs[15] += 8;
             }
-            _ => self.gprs[gpr as usize] = val
+            
+            else {
+                self.gprs[15] = (val - 2) & !1;
+                self.pipeline[1] = bus.read16(self.gprs[15] + 2) as u32; 
+                self.pipeline[2] = bus.read16(self.gprs[15] + 4) as u32;
+
+                self.gprs[15] += 4;
+            }
         }
     }
 
@@ -145,12 +147,12 @@ impl CPU {
         
         if self.isInARMState() {
                 self.gprs[15] += 4;
-                self.pipeline[2] = bus.read32(self.getGPR(15));
+                self.pipeline[2] = bus.read32(self.gprs[15]);
         }
 
         else {
                 self.gprs[15] += 2;
-                self.pipeline[2] = bus.read16(self.getGPR(15)) as u32;
+                self.pipeline[2] = bus.read16(self.gprs[15]) as u32;
         }
     }
 

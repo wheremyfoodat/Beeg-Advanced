@@ -100,8 +100,9 @@ impl Bus {
             4 => val = self.readIO16(address),
 
             5 => {
-                val = self.ppu.paletteRAM[(address & 0x3FF) as usize] as u16;
-                val |= (self.ppu.paletteRAM[((address + 1) & 0x3FF) as usize] as u16) << 8;
+                let pal_addr = address as usize & 0x3FF;
+                val = self.ppu.paletteRAM[pal_addr] as u16;
+                val |= (self.ppu.paletteRAM[pal_addr + 1] as u16) << 8;
             },
 
             6 => {
@@ -233,7 +234,11 @@ impl Bus {
             2 => self.mem.eWRAM[(address & 0x3FFFF) as usize] = val,
             3 => self.mem.iWRAM[(address & 0x7FFF) as usize] = val,
             4 => self.writeIO8(address, val),
-            5 => self.ppu.paletteRAM[address as usize & 0x3FF] = val,
+            5 => {
+                let pal_addr = address as usize & 0x3FF;
+                self.ppu.paletteRAM[pal_addr] = val;    
+                self.ppu.updatePalette((pal_addr as u16) >> 1)
+            },
             6 => println!("8-bit write to VRAM!"),
             7 => self.ppu.OAM[address as usize & 0x3FF] = val,
             8..=0xD => {}
@@ -262,8 +267,11 @@ impl Bus {
             4 => self.writeIO16(address, val),
             
             5 => {
-                self.ppu.paletteRAM[(address & 0x3FF) as usize] = (val & 0xFF) as u8;
-                self.ppu.paletteRAM[((address + 1) & 0x3FF) as usize] = (val >> 8) as u8;
+                let pal_addr = address as usize & 0x3FF;
+                self.ppu.paletteRAM[pal_addr] = (val & 0xFF) as u8;
+                self.ppu.paletteRAM[pal_addr + 1] = (val >> 8) as u8;
+                
+                self.ppu.updatePalette((pal_addr as u16) >> 1);
             }
 
             6 => {
@@ -304,10 +312,14 @@ impl Bus {
             }
 
             5 => {
-                self.ppu.paletteRAM[(address & 0x3FF) as usize] = (val & 0xFF) as u8;
-                self.ppu.paletteRAM[((address & 0x3FF) + 1) as usize] = (val >> 8) as u8;
-                self.ppu.paletteRAM[((address & 0x3FF) + 2) as usize] = (val >> 16) as u8;
-                self.ppu.paletteRAM[((address & 0x3FF) + 3) as usize] = (val >> 24) as u8;
+                let pal_addr = address as usize & 0x3FF;
+                self.ppu.paletteRAM[pal_addr] = (val & 0xFF) as u8;
+                self.ppu.paletteRAM[pal_addr + 1] = (val >> 8) as u8;
+                self.ppu.paletteRAM[pal_addr + 2] = (val >> 16) as u8;
+                self.ppu.paletteRAM[pal_addr + 3] = (val >> 24) as u8;
+
+                self.ppu.updatePalette((pal_addr as u16) >> 1);
+                self.ppu.updatePalette((pal_addr as u16 + 2) >> 1);
             }
 
             6 => {
@@ -334,6 +346,7 @@ impl Bus {
         match address {
             0x4000000 => self.ppu.dispcnt.getRaw() as u8,
             0x4000006 => self.ppu.vcount as u8,
+            0x4000054 => self.ppu.bldy as u8,
             0x4000089 => (self.soundbiasStub >> 8) as u8,
             _ => 0//{println!("Unimplemented 8-bit read from MMIO address {:08X}", address); 0}
         }
@@ -344,6 +357,8 @@ impl Bus {
             0x4000000 => self.ppu.dispcnt.getRaw(),
             0x4000004 => self.ppu.dispstat.getRaw(),
             0x4000006 => self.ppu.vcount,
+            0x4000054 => self.ppu.bldy as u16,
+
             0x4000088 => { println!("Read from SOUNDBIAS (Unimpl)"); self.soundbiasStub as u16},
             0x4000102 | 0x4000106 | 0x400010A | 0x400010E => { println!("Read from Timer control regs! (Unimpl)"); 0}
             
@@ -366,6 +381,8 @@ impl Bus {
         match address {
             0x4000000 => self.ppu.dispcnt.getRaw() as u32,
             0x4000004 => (self.ppu.dispstat.getRaw() as u32) | ((self.ppu.vcount as u32) << 16),
+            0x4000054 => self.ppu.bldy as u32,
+
             0x4000200 => ((self.getIF() as u32) << 16) | self.ie as u32,
             0x4000208 => self.ime as u32,
             0x40000DC => (self.dmaChannels[3].controlReg.getRaw() as u32) << 16,
@@ -377,6 +394,7 @@ impl Bus {
         match address {
             0x4000000..=0x4000003 => panic!("Unhandled 8-bit DISPCNT write"),
             0x4000008..=0x400000F => {panic!("Unhandled 8-bit bgcnt write");}
+            0x4000054 => self.ppu.bldy = val as u32 & 0x1F,
             0x4000070 => println!("Wrote to SOUND3CNT!"),
             0x4000084 => println!("Wrote to SOUNDCNT_X!"),
             0x4000208 => {
@@ -410,6 +428,7 @@ impl Bus {
             0x4000016 => self.ppu.bg_vofs[1].setRaw(val),
             0x400001A => self.ppu.bg_vofs[2].setRaw(val),
             0x400001E => self.ppu.bg_vofs[3].setRaw(val),
+            0x4000054 => self.ppu.bldy = val as u32 & 0x1F,
 
             // Timer registers
 
@@ -478,6 +497,7 @@ impl Bus {
 
             0x4000008 => { self.ppu.bg_controls[0].setRaw(val as u16); self.ppu.bg_controls[1].setRaw((val >> 16) as u16) },
             0x400000C => { self.ppu.bg_controls[2].setRaw(val as u16); self.ppu.bg_controls[3].setRaw((val >> 16) as u16) },
+            0x4000054 => self.ppu.bldy = val & 0x1F,
 
             0x4000088 => { self.soundbiasStub = val; println!("Wrote to SOUNDBIAS!") },
             0x4000200 => {

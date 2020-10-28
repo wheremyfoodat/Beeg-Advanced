@@ -1,6 +1,6 @@
 use ppu::PPU;
 use crate::PPU::*;
-use crate::isBitSet;
+use crate::sign_extend_32;
 use crate::helpers::get8BitColor;
 
 impl PPU {
@@ -37,11 +37,15 @@ impl PPU {
         let mut bufferIndex = self.vcount as usize * 240 * 4;
 
         for i in 0..240 {
-            let pixel = self.readVRAM16(mapDataBase);
-            self.pixels[bufferIndex] = get8BitColor((pixel & 0x1F) as u8); //R
-            self.pixels[bufferIndex + 1] = get8BitColor(((pixel >> 5) & 0x1F) as u8); //G
-            self.pixels[bufferIndex + 2] = get8BitColor(((pixel >> 10) & 0x1F) as u8); //B
-    
+            let pixel = self.readVRAM16(mapDataBase); 
+            let red = get8BitColor((pixel & 0x1F) as u8); //R
+            let green = get8BitColor(((pixel >> 5) & 0x1F) as u8); //G
+            let blue = get8BitColor(((pixel >> 10) & 0x1F) as u8); //B
+
+            self.pixels[bufferIndex] = red;
+            self.pixels[bufferIndex+1] = green;
+            self.pixels[bufferIndex+2] = blue;
+
             mapDataBase += 2;
             bufferIndex += 4;
         }
@@ -102,8 +106,8 @@ impl PPU {
             let tileNum = (mapEntry & 0x3FF) as u32;
             let palNum = (mapEntry >> 12) as u8;
 
-            tile_x ^= ((mapEntry as u32 & 0x400) >> 10) * 7; // fast-ish flipping impl. TODO: Check if it's actually faster
-            tile_y ^= ((mapEntry & 0x800) >> 11) * 7;
+            tile_x ^= (sign_extend_32!(mapEntry, 11) >> 12) & 7; // fast-ish flipping impl. TODO: Check if it's actually faster
+            tile_y ^= (sign_extend_32!(mapEntry, 12) >> 13) as u16 & 7;
             //if isBitSet!(mapEntry, 10) { tile_x ^= 7; } // horizontal tile flip
             //if isBitSet!(mapEntry, 11) { tile_y ^= 7; } // vertical tile flip
 

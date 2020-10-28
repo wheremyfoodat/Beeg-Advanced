@@ -1,15 +1,15 @@
 use ppu::PPU;
 use crate::PPU::*;
-use std::cmp::Ordering;
 use crate::isBitSet;
+use crate::sign_extend_16;
 
 const OAM_MAX: usize = 0x3FF;
-const SPRITE_SIZES: [[[u16; 2]; 3]; 4] = [ // Look up table of all sprite x/y sizes
+const SPRITE_SIZES: [[[u16; 2]; 4]; 4] = [ // Look up table of all sprite x/y sizes
                                           // It goes like table[size][shape][x/y]
-                        [[8, 8], [16, 8], [8, 16]],
-                        [[16, 16], [32, 8], [8, 32]],
-                        [[32, 32], [32, 16], [16, 32]],
-                        [[64, 64], [64, 32], [32, 64]]
+                        [[8, 8], [16, 8], [8, 16], [0, 0]], // Size for shape == 3 is 0, 0 (sprites with shape == 3 aren't rendered)
+                        [[16, 16], [32, 8], [8, 32], [0, 0]],
+                        [[32, 32], [32, 16], [16, 32], [0, 0]],
+                        [[64, 64], [64, 32], [32, 64], [0, 0]]
                     ];
 
 pub struct Sprite {
@@ -21,8 +21,8 @@ pub struct Sprite {
     pub palNum: u8, // The palette number the sprite uses (for 4bpp sprites)
 
     pub is8bpp: bool, // Whether the palette num for each pixel is contained in 4 or 8 bits
-    pub h_flip: bool, // Whether the tile is horizontally flipped or not
-    pub v_flip: bool, // Whether the tile is vertically flipped or not
+    pub h_flip: u16, // Whether the tile is horizontally flipped or not (u16 for optimization reasons)
+    pub v_flip: u16, // Whether the tile is vertically flipped or not (u16 for optimization reasons)
 
     pub shape: u16, // 0: square. 1: horizontal. 2: vertical
     pub size: u16,
@@ -40,8 +40,8 @@ impl Sprite {
             palNum: ((attr2 >> 12) & 0xF) as u8,
 
             is8bpp: isBitSet!(attr0, 13),
-            h_flip: isBitSet!(attr1, 12),
-            v_flip: isBitSet!(attr1, 13),
+            h_flip: (attr1 >> 12) & 1,
+            v_flip: (attr1 >> 13) & 1,
 
             shape: (attr0 >> 14) & 3,
             size: (attr1 >> 14) & 3,
@@ -49,27 +49,6 @@ impl Sprite {
         }
     }
 }
-
-impl Ord for Sprite {
-    fn cmp(&self, other: &Self) -> Ordering {
-        (other.priority).cmp(&self.priority)
-    }
-}
-
-impl PartialOrd for Sprite {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl PartialEq for Sprite  {
-    fn eq(&self, other: &Self) -> bool {
-        other.priority == self.priority
-    }
-}
-
-impl Eq for Sprite  { }
-
 
 impl PPU {
     pub fn fetchSprites(&mut self) {
@@ -89,7 +68,6 @@ impl PPU {
 
             let size = (attr1 >> 14) & 3;
             let shape = (attr0 >> 14) & 3;
-            if shape == 3 {println!("OBJ with shape 3"); continue;}
 
             if x_coord >= 240 {x_coord -= 512}
             if y_coord >= 160 {y_coord -= 256}
@@ -130,8 +108,8 @@ impl PPU {
                 let mut tile_x = i;
                 let mut tile_y = linesSinceOBJStart as u16;
 
-                if sprite.h_flip {tile_x ^= SPRITE_X-1}
-                if sprite.v_flip {tile_y ^= SPRITE_Y-1}
+                tile_x ^= (((sprite.h_flip as i16) << 15 >> 15) as u16) & (SPRITE_X-1); // fast-ish, branchless mirroring
+                tile_y ^= (((sprite.v_flip as i16) << 15 >> 15) as u16) & (SPRITE_Y-1);
 
                 let mut tile_addr = 0x10000; // TODO: Add sprite support for modes 3-5. These modes DO NOT use 0x10000 as the base, but 0x14000
 

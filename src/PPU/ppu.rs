@@ -13,13 +13,15 @@ pub struct PPU {
     pub bg_controls: [BGCNT; 4],
     pub bg_hofs: [BGOFS; 4],
     pub bg_vofs: [BGOFS; 4],
+    pub bldy: u32,
     pub vcount: u16, // Only lower 8 bits are used on the GBA
 
     pub paletteRAM: [u8; 1024],
     pub VRAM: Vec<u8>,
     pub OAM:  Vec<u8>,
 
-    pub pixels: [u8; HEIGHT * WIDTH * 4],
+    pub pixels: Vec<u8>,
+    pub paletteCache: [u32; 512],
     pub sprites: Vec<Sprite>,
     pub interruptFlags: u16,
     pub currentLine: [u16; WIDTH] // Palette indices for each pixel of the line. Used for multiple BG rendering
@@ -33,30 +35,46 @@ impl PPU {
             bg_controls: [BGCNT(0), BGCNT(0), BGCNT(0), BGCNT(0)],
             bg_hofs: [BGOFS(0), BGOFS(0), BGOFS(0), BGOFS(0)],
             bg_vofs: [BGOFS(0), BGOFS(0), BGOFS(0), BGOFS(0)],
+            bldy: 0,
             vcount: 0,
             
             paletteRAM: [0; 1024],
             VRAM: vec![0; 96 * 1024],
             OAM:  vec![0; 1024],
 
-            pixels: [0xFF; 240 * 160 * 4],
+            pixels: vec![0xFF; WIDTH * HEIGHT * 4],
+            paletteCache: [0xFFFF; 512],
             sprites: vec![],
             interruptFlags: 0,
 
-            currentLine: [0; WIDTH],
+            currentLine: [0; WIDTH]
         }
     }
 
+    #[inline(always)]
     pub fn readPalette16 (&self, palNum: u16) -> u16 {
         (self.paletteRAM[palNum as usize * 2] as u16) | ((self.paletteRAM[palNum as usize * 2 + 1] as u16) << 8)
     }
 
+    #[inline(always)]
     pub fn readVRAM16 (&self, address: u32) -> u16 {
         (self.VRAM[address as usize] as u16) | ((self.VRAM[address as usize +1] as u16) << 8)
     }
 
+    #[inline(always)]
     pub fn readOAM16 (&self, address: usize) -> u16 {
         (self.OAM[address] as u16) | ((self.OAM[address + 1] as u16) << 8)
+    }
+
+    // cache the newly written BGR555 palette value as an RGB888 value
+    #[inline(always)]
+    pub fn updatePalette (&mut self, palNum: u16) {
+        let palette = self.readPalette16(palNum);
+        let red = get8BitColor((palette & 0x1F) as u8);          // red
+        let green = get8BitColor(((palette >> 5) & 0x1F) as u8); // green
+        let blue = get8BitColor(((palette >> 10) & 0x1F) as u8); // blue
+
+        self.paletteCache[palNum as usize] = ((red as u32) << 16) | ((green as u32) << 8) | (blue as u32);
     }
 
     pub fn renderScanline(&mut self) {
@@ -77,12 +95,12 @@ impl PPU {
         let mut bufferIndex = self.vcount as usize * WIDTH * 4; // Get the framebuffer position of the current line
 
         for i in 0..WIDTH { // Copy the rendered line to the fb
-            let palette = self.readPalette16(self.currentLine[i]);
-
-            self.pixels[bufferIndex] = get8BitColor((palette & 0x1F) as u8);          // red
-            self.pixels[bufferIndex+1] = get8BitColor(((palette >> 5) & 0x1F) as u8); // green
-            self.pixels[bufferIndex+2] = get8BitColor(((palette >> 10) & 0x1F) as u8); // blue
-            bufferIndex += 4; // +4 instead of +3 cause the framebuffer contains Alpha too (which is always FF)
+            let pixel = self.paletteCache[self.currentLine[i] as usize];
+            // store rgb888 color to buffer
+            self.pixels[bufferIndex] = (pixel >> 16) as u8;
+            self.pixels[bufferIndex+1] = (pixel >> 8) as u8;
+            self.pixels[bufferIndex+2] = (pixel) as u8;
+            bufferIndex += 4;
         }
     }
 

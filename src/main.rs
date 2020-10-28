@@ -35,7 +35,7 @@ fn main() {
                             &format!("Beeg Advanced: {}", gameName),
                             Style::RESIZE | Style::CLOSE,
                   &ContextSettings::default());
-    window.set_framerate_limit(0);
+    window.set_framerate_limit(0); // fun fact: SFML's frame limiting is crap
     
     loop {
         gba.executeFrame(&mut window);

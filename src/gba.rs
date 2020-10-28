@@ -6,12 +6,12 @@ use std::time::Instant;
 use sfml::graphics::*;
 use sfml::system::*;
 use crate::scheduler::*;
+use std::slice;
 
 pub struct GBA {
     cpu: CPU,
     bus: Bus,
     isFrameReady: bool,
-
     texture: SfBox<Texture>
 }
 
@@ -32,12 +32,12 @@ impl GBA {
 
     pub fn step(&mut self) {
         if !self.bus.halted { // Check HALTCNT
-            self.advanceScheduler(1);
+            self.advanceScheduler(2);
             self.cpu.step(&mut self.bus);
         }
 
         else {
-            self.advanceScheduler(1);
+            self.advanceScheduler(2);
         }
     }
 
@@ -66,7 +66,7 @@ impl GBA {
         }
     */
         //println!("Frame time: {}ms", start.elapsed().as_millis());  
-        // println!("FPS: {}", 16.0 / start.elapsed().as_millis() as f64 * 60.0);              
+        //println!("FPS: {}", 16.0 / start.elapsed().as_millis() as f64 * 60.0);
 
         let sprite: Sprite;
         unsafe {

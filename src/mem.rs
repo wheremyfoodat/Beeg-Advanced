@@ -13,7 +13,7 @@ impl Memory {
     pub fn new(romPath: String) -> Memory {
         let mut ROM = readFileIntoVec(&romPath);
         let mut BIOS = readFileIntoVec(&"ROMs/NormattBIOS.gba".to_string());
-        let mut len = ROM.len();
+        let mut len = ROM.len()-1;
 
         while len < (32 * 1024 * 1024) {// While the ROM is < 32 MB, fill it with valid OoB data 
             let OoBFillerData = (len >> 1) as u16;
