@@ -44,8 +44,10 @@ impl CPU {
     }
 
     pub fn ARM_handleDataProcessingRegister (&mut self, bus: &mut Bus, instruction: u32) {
+        let shiftAmount = self.getGPR((instruction >> 8) & 0xF) & 0xFF;
         self.gprs[15] += 4; // PC is 3 steps ahead instead of 2 in this type of instr.
                             // We stub it by making it go an extra step ahead during operand fetch
+                            // Note: rs IS NOT affected by this, as it's fetched before the PC gets incremented
 
         let rdIndex = (instruction >> 12) & 0xF; 
         let rnIndex = (instruction >> 16) & 0xF;
@@ -53,7 +55,6 @@ impl CPU {
         let oldCarry = self.cpsr.getCarry();
 
         let shift = (instruction >> 5) & 3;
-        let shiftAmount = self.getGPR((instruction >> 8) & 0xF) & 0xFF;
         let opcode = (instruction >> 21) & 0xF;
 
         let rn = self.getGPR(rnIndex);
@@ -72,8 +73,10 @@ impl CPU {
     }
 
     pub fn ARM_handleDataProcessingRegisterWithFlags (&mut self, bus: &mut Bus, instruction: u32) {
+        let shiftAmount = self.getGPR((instruction >> 8) & 0xF) & 0xFF;
         self.gprs[15] += 4; // PC is 3 steps ahead instead of 2 in this type of instr.
                             // We stub it by making it go an extra step ahead during operand fetch
+                            // Note: rs IS NOT affected by this, as it's fetched before the PC gets incremented
 
         let rdIndex = (instruction >> 12) & 0xF; 
         let rnIndex = (instruction >> 16) & 0xF;
@@ -81,7 +84,6 @@ impl CPU {
         let oldCarry = self.cpsr.getCarry();
 
         let shift = (instruction >> 5) & 3;
-        let shiftAmount = self.getGPR((instruction >> 8) & 0xF) & 0xFF;
         let opcode = (instruction >> 21) & 0xF;
         let affectFlags = rdIndex != 15;
 

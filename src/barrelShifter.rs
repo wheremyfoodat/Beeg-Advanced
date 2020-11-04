@@ -1,5 +1,4 @@
 use crate::cpu::CPU;
-use crate::isBitSet;
 
 impl CPU {
     #[inline(always)]

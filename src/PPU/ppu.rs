@@ -1,4 +1,4 @@
-use crate::io::{BGCNT, DISPSTAT, DISPCNT, BGOFS};
+use crate::io::{BGCNT, DISPSTAT, DISPCNT, BGOFS, BGRefPoint, RotationAndScalingParam};
 use crate::helpers::get8BitColor;
 use crate::PPU::sprites::Sprite;
 
@@ -13,6 +13,15 @@ pub struct PPU {
     pub bg_controls: [BGCNT; 4],
     pub bg_hofs: [BGOFS; 4],
     pub bg_vofs: [BGOFS; 4],
+    
+    // affine regs
+    pub aff_bg_pa: [RotationAndScalingParam; 2], // BG Rotation/Scaling Parameter A
+    pub aff_bg_pb: [RotationAndScalingParam; 2], // BG Rotation/Scaling Parameter B
+    pub aff_bg_pc: [RotationAndScalingParam; 2], // BG Rotation/Scaling Parameter C
+    pub aff_bg_pd: [RotationAndScalingParam; 2], // BG Rotation/Scaling Parameter D
+    pub aff_bg_dx: [BGRefPoint; 2], // BG2 Reference Point X-Coordinate
+    pub aff_bg_dy: [BGRefPoint; 2], // BG2 Reference Point Y-Coordinate
+
     pub bldy: u32,
     pub vcount: u16, // Only lower 8 bits are used on the GBA
 
@@ -21,7 +30,7 @@ pub struct PPU {
     pub OAM:  Vec<u8>,
 
     pub pixels: Vec<u8>,
-    pub paletteCache: [u32; 512],
+    pub paletteCache: [[u8; 3]; 512],
     pub sprites: Vec<Sprite>,
     pub interruptFlags: u16,
     pub currentLine: [u16; WIDTH] // Palette indices for each pixel of the line. Used for multiple BG rendering
@@ -35,6 +44,15 @@ impl PPU {
             bg_controls: [BGCNT(0), BGCNT(0), BGCNT(0), BGCNT(0)],
             bg_hofs: [BGOFS(0), BGOFS(0), BGOFS(0), BGOFS(0)],
             bg_vofs: [BGOFS(0), BGOFS(0), BGOFS(0), BGOFS(0)],
+
+            aff_bg_pa: [RotationAndScalingParam(0), RotationAndScalingParam(0)], // BG Rotation/Scaling Parameter A
+            aff_bg_pb: [RotationAndScalingParam(0), RotationAndScalingParam(0)], // BG Rotation/Scaling Parameter B
+            aff_bg_pc: [RotationAndScalingParam(0), RotationAndScalingParam(0)], // BG Rotation/Scaling Parameter C
+            aff_bg_pd: [RotationAndScalingParam(0), RotationAndScalingParam(0)], // BG Rotation/Scaling Parameter D
+
+            aff_bg_dx: [BGRefPoint(0), BGRefPoint(0)], // BG Reference Point X-Coordinate
+            aff_bg_dy: [BGRefPoint(0), BGRefPoint(0)], // BG Reference Point Y-Coordinate
+            
             bldy: 0,
             vcount: 0,
             
@@ -43,7 +61,7 @@ impl PPU {
             OAM:  vec![0; 1024],
 
             pixels: vec![0xFF; WIDTH * HEIGHT * 4],
-            paletteCache: [0xFFFF; 512],
+            paletteCache: [[0xFF; 3]; 512],
             sprites: vec![],
             interruptFlags: 0,
 
@@ -74,7 +92,9 @@ impl PPU {
         let green = get8BitColor(((palette >> 5) & 0x1F) as u8); // green
         let blue = get8BitColor(((palette >> 10) & 0x1F) as u8); // blue
 
-        self.paletteCache[palNum as usize] = ((red as u32) << 16) | ((green as u32) << 8) | (blue as u32);
+        self.paletteCache[palNum as usize][0] = red;
+        self.paletteCache[palNum as usize][1] = green;
+        self.paletteCache[palNum as usize][2] = blue;
     }
 
     pub fn renderScanline(&mut self) {
@@ -85,7 +105,7 @@ impl PPU {
 
         match self.dispcnt.getMode() {
             0 => self.renderMode0(),
-            1 => self.renderMode0(),
+            1 => self.renderMode1(),
             //1 => self.renderMode1(),
             3 => { self.renderMode3(); return; }, // Mode 3 isn't palette based, so we gotta early exit
             4 => self.renderMode4(),
@@ -95,11 +115,10 @@ impl PPU {
         let mut bufferIndex = self.vcount as usize * WIDTH * 4; // Get the framebuffer position of the current line
 
         for i in 0..WIDTH { // Copy the rendered line to the fb
-            let pixel = self.paletteCache[self.currentLine[i] as usize];
             // store rgb888 color to buffer
-            self.pixels[bufferIndex] = (pixel >> 16) as u8;
-            self.pixels[bufferIndex+1] = (pixel >> 8) as u8;
-            self.pixels[bufferIndex+2] = (pixel) as u8;
+            self.pixels[bufferIndex] = self.paletteCache[self.currentLine[i] as usize][0];
+            self.pixels[bufferIndex+1] = self.paletteCache[self.currentLine[i] as usize][1];
+            self.pixels[bufferIndex+2] = self.paletteCache[self.currentLine[i] as usize][2];
             bufferIndex += 4;
         }
     }
@@ -121,5 +140,13 @@ impl PPU {
             self.dispstat.setCoincidenceFlag(0);
             false
         }
+    }
+
+    pub fn incrementAffineRegs(&mut self) {
+        // todo: Make aff regs latch
+        self.aff_bg_dx[0].setRaw(self.aff_bg_dx[0].getRaw() + self.aff_bg_pb[0].getRaw() as u32); // inc BG2X by BG2PB
+        self.aff_bg_dx[1].setRaw(self.aff_bg_dx[1].getRaw() + self.aff_bg_pb[1].getRaw() as u32);
+        self.aff_bg_dy[0].setRaw(self.aff_bg_dy[0].getRaw() + self.aff_bg_pd[0].getRaw() as u32);
+        self.aff_bg_dy[1].setRaw(self.aff_bg_dy[1].getRaw() + self.aff_bg_pd[1].getRaw() as u32);
     }
 }

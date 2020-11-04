@@ -32,18 +32,18 @@ impl GBA {
 
     pub fn step(&mut self) {
         if !self.bus.halted { // Check HALTCNT
-            self.advanceScheduler(1);
+            self.advanceScheduler(2);
             self.cpu.step(&mut self.bus);
         }
 
         else {
-            self.advanceScheduler(1);
+            self.advanceScheduler(2);
         }
     }
 
     pub fn executeFrame (&mut self, window: &mut sfml::graphics::RenderWindow) {
         self.isFrameReady = false;
-        let start = Instant::now(); // Start time of the frame
+        //let start = Instant::now(); // Start time of the frame
         
         while !self.isFrameReady {
             self.step();
@@ -106,6 +106,7 @@ impl GBA {
 
                 if self.bus.ppu.vcount < 160 {
                     self.bus.ppu.renderScanline();
+                    //self.bus.ppu.incrementAffineRegs();
                     self.bus.pollDMAs(DMAChannelStatus::HBlank); // See if there's any HBlank-triggered DMAs to fire. HBlank DMAs DO NOT fire during VBlank
                 }
 

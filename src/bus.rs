@@ -1,4 +1,5 @@
 use ppu::PPU;
+use std::io::*;
 
 use crate::mem::*;
 use crate::PPU::ppu;
@@ -393,7 +394,7 @@ impl Bus {
     pub fn writeIO8 (&mut self, address: u32, val: u8) {
         match address {
             0x4000000..=0x4000003 => panic!("Unhandled 8-bit DISPCNT write"),
-            0x4000008..=0x400000F => {panic!("Unhandled 8-bit bgcnt write");}
+            0x4000008..=0x4000052 => {panic!("Unhandled 8-bit write to PPU reg: {:08X}", address);}
             0x4000054 => self.ppu.bldy = val as u32 & 0x1F,
             0x4000070 => println!("Wrote to SOUND3CNT!"),
             0x4000084 => println!("Wrote to SOUNDCNT_X!"),
@@ -402,6 +403,7 @@ impl Bus {
                 self.scheduler.pushEvent(EventTypes::PollInterrupts, 0); // Schedule polling interrupts
             }
             0x4000301 => self.halted = (val >> 7) == 0, // HALTCNT
+            0x4000420 => { print!("{}", val as char); std::io::stdout().flush().ok().expect("Could not flush stdout"); }, // custom debugging port
             _ => {}//println!("Unimplemented 8-bit write to IO address {:08X}\n", address)
         }
     }
@@ -428,6 +430,16 @@ impl Bus {
             0x4000016 => self.ppu.bg_vofs[1].setRaw(val),
             0x400001A => self.ppu.bg_vofs[2].setRaw(val),
             0x400001E => self.ppu.bg_vofs[3].setRaw(val),
+
+            0x4000020 => self.ppu.aff_bg_pa[0].setRaw(val),
+            0x4000022 => self.ppu.aff_bg_pb[0].setRaw(val),
+            0x4000024 => self.ppu.aff_bg_pc[0].setRaw(val),
+            0x4000026 => self.ppu.aff_bg_pd[0].setRaw(val),
+
+            0x4000030 => self.ppu.aff_bg_pa[1].setRaw(val),
+            0x4000032 => self.ppu.aff_bg_pb[1].setRaw(val),
+            0x4000034 => self.ppu.aff_bg_pc[1].setRaw(val),
+            0x4000036 => self.ppu.aff_bg_pd[1].setRaw(val),
             0x4000054 => self.ppu.bldy = val as u32 & 0x1F,
 
             // Timer registers
@@ -469,7 +481,6 @@ impl Bus {
 
     pub fn writeIO32 (&mut self, address: u32, val: u32) {
         match address {
-            0x4000000 => self.ppu.dispcnt.setRaw(val as u16),
             0x4000080 => println!("Wrote to SOUNDCNT!"),
 
             // DMA SAD registers
@@ -495,9 +506,20 @@ impl Bus {
 
             // PPU
 
+            0x4000000 => self.ppu.dispcnt.setRaw(val as u16),
             0x4000008 => { self.ppu.bg_controls[0].setRaw(val as u16); self.ppu.bg_controls[1].setRaw((val >> 16) as u16) },
             0x400000C => { self.ppu.bg_controls[2].setRaw(val as u16); self.ppu.bg_controls[3].setRaw((val >> 16) as u16) },
             0x4000054 => self.ppu.bldy = val & 0x1F,
+            0x4000010 => { self.ppu.bg_hofs[0].setRaw(val as u16); self.ppu.bg_vofs[0].setRaw((val >> 16) as u16); }
+            0x4000014 => { self.ppu.bg_hofs[1].setRaw(val as u16); self.ppu.bg_vofs[1].setRaw((val >> 16) as u16); }
+            0x4000018 => { self.ppu.bg_hofs[2].setRaw(val as u16); self.ppu.bg_vofs[2].setRaw((val >> 16) as u16); }
+            0x400001C => { self.ppu.bg_hofs[3].setRaw(val as u16); self.ppu.bg_vofs[3].setRaw((val >> 16) as u16); }
+            0x4000028 => self.ppu.aff_bg_dx[0].setRaw(val),
+            0x400002C => self.ppu.aff_bg_dy[0].setRaw(val),
+            0x4000038 => self.ppu.aff_bg_dx[1].setRaw(val),
+            0x400003C => self.ppu.aff_bg_dy[1].setRaw(val),
+
+            //0x4000000..=0x4000050 => panic!("32-bit write to PPU reg: {:08X}", address),
 
             0x4000088 => { self.soundbiasStub = val; println!("Wrote to SOUNDBIAS!") },
             0x4000200 => {

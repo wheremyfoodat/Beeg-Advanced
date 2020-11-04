@@ -45,7 +45,6 @@ bitfield!{
     pub getOffset, _     :    8, 0;                  
 }
 
-
 bitfield!{
     pub struct KEYINPUT(u16);
     pub getRaw, setRaw: 15, 0;
@@ -83,4 +82,22 @@ bitfield! {
     pub isCascading, _: 2;
     pub fireIRQ,     _: 6;
     pub isEnabled,   _: 7;
+}
+
+bitfield! {
+    #[derive(Copy, Clone)]
+    pub struct BGRefPoint(u32); // replaces HOFS/VOFS in aff BGs
+    pub getRaw, setRaw: 27, 0;
+    pub fractional, _: 7, 0;
+    pub integer,    _: 26, 8;
+    pub sign,       _: 27;
+}
+
+bitfield! {
+    #[derive(Copy, Clone)]
+    pub struct RotationAndScalingParam(u16); // Used for rotation/scaling in aff BGs
+    pub getRaw, setRaw: 15, 0;
+    pub fractional, _: 7, 0;
+    pub integer,    _: 14, 8;
+    pub sign,       _: 15;
 }
