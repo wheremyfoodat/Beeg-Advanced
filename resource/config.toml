@@ -1,0 +1,27 @@
+[general]
+bios_path = "bios.bin"
+bios_skip = false
+sync_to_audio = false
+
+[cartridge]
+# Possible values: detect, none, sram, flash64, flash128, eeprom512, eeprom8192
+save_type = "detect"
+# Force-enable RTC emulation, otherwise rely on game database.
+force_rtc = true
+
+[video]
+fullscreen = false
+scale = 2
+# Set empty string for no shader.
+shader_vs = "shader/gba_colors.vs"
+shader_fs = "shader/gba_colors.fs"
+
+[audio]
+# Possible values: cosine, cubic, sinc64, sinc128, sinc256
+resampler = "cubic"
+# Filter FIFO audio before passing it to the mixer.
+# This will reduce the dity high-frequency aliasing typical to the GBA.
+interpolate_fifo = true
+# Higher quality for games using the popular M4A audio engine,
+# but at the cost of accuracy and performance. Games may break.
+m4a_xq_enable = false
