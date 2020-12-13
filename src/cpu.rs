@@ -95,7 +95,7 @@ impl CPU {
     }
 
     #[inline(always)]
-    pub fn getGPR(&mut self, gpr: u32) -> u32 {
+    pub const fn getGPR(&self, gpr: u32) -> u32 {
         self.gprs[gpr as usize]
     } 
 

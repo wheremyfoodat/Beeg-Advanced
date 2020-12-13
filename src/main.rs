@@ -1,5 +1,7 @@
 #![warn(clippy::all)]
 #![allow(nonstandard_style)]
+#![feature(const_fn)]
+#![feature(const_panic)]
 
 extern crate sfml;
 extern  crate staticvec;

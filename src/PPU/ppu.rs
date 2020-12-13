@@ -70,13 +70,13 @@ impl PPU {
     }
 
     #[inline(always)]
-    pub fn readPalette16 (&self, palNum: u16) -> u16 {
+    pub const fn readPalette16 (&self, palNum: u16) -> u16 {
         (self.paletteRAM[palNum as usize * 2] as u16) | ((self.paletteRAM[palNum as usize * 2 + 1] as u16) << 8)
     }
 
     #[inline(always)]
     pub fn readVRAM16 (&self, address: u32) -> u16 {
-        (self.VRAM[address as usize] as u16) | ((self.VRAM[address as usize +1] as u16) << 8)
+        (self.VRAM[address as usize] as u16) | ((self.VRAM[address as usize + 1] as u16) << 8)
     }
 
     #[inline(always)]
