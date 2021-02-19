@@ -29,7 +29,7 @@ impl CPU {
                 self.thumbLUT[x] = Self::Thumb_handleSPRelativeLoad;
             }
 
-            else if x ==0xB0 { 
+            else if x == 0xB0 { 
                 self.thumbLUT[x] = Self::Thumb_handleAddSignedOffsetToSP;
             }
 
