@@ -135,7 +135,7 @@ impl CPU {
                 self.setGPR(rdIndex, res, bus)
             },
             1 => self._CMP(rd, rs), // CMP
-            2 => self.setGPR(rdIndex, self.gprs[rsIndex as usize], bus), // MOV
+            2 => self.setGPR(rdIndex, rs, bus), // MOV
             _ => self.Thumb_handleBX(rs, bus) // BX
         }
     }
