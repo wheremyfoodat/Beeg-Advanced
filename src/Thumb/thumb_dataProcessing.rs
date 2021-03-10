@@ -123,7 +123,7 @@ impl CPU {
 
     pub fn Thumb_handleHighRegOp (&mut self, bus: &mut Bus, instruction: u32) {
         let rdIndex = (instruction & 0x7) | ((instruction >> 4) & 0b1000);
-        let rsIndex = ((instruction >> 3) & 0x7) | ((instruction >> 3) & 0b1000);
+        let rsIndex = (instruction >> 3) & 0xF;
         let op = (instruction >> 8) & 0x3;
 
         let rs = self.gprs[rsIndex as usize];
